@@ -404,7 +404,7 @@ def initialize_database(path: Path, args: argparse.Namespace) -> sqlite3.Connect
         "CREATE TABLE tiles (zoom_level INTEGER, tile_column INTEGER, tile_row INTEGER, tile_data BLOB)"
     )
     metadata = {
-        "name": "Dance Atlas SRTM shaded relief",
+        "name": "National Ministry of Greek Folk Dance Research Map SRTM shaded relief",
         "description": "Land-only shaded relief from NASA SRTMGL3S with Natural Earth hydrography",
         "type": "baselayer",
         "version": "1",
@@ -480,7 +480,7 @@ def main() -> None:
         finally:
             connection.close()
     else:
-        with tempfile.TemporaryDirectory(prefix="dance-atlas-srtm-") as temporary:
+        with tempfile.TemporaryDirectory(prefix="greek-folk-dance-map-srtm-") as temporary:
             mosaic = build_elevation_mosaic(args, Path(temporary) / "srtm-mosaic.int16")
             connection = initialize_database(args.output, args)
             try:

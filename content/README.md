@@ -1,6 +1,7 @@
 # Editing `dances.md`
 
-[`dances.md`](dances.md) is the single canonical content source for Dance Atlas.
+[`dances.md`](dances.md) is the single canonical content source for the National
+Ministry of Greek Folk Dance Research Map.
 The published page fetches and validates it in the visitor's browser on every
 load. Save and commit an edit, then refresh the site; there is no content build
 or generated index.

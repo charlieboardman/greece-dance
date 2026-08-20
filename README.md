@@ -1,7 +1,8 @@
-# Dance Atlas
+# National Ministry of Greek Folk Dance Research Map
 
-Dance Atlas is a completely static website. The repository contains the whole
-application and requires no build or deployment service.
+The National Ministry of Greek Folk Dance Research Map is a completely static
+website. The repository contains the whole application and requires no build or
+deployment service.
 
 - [`content/dances.md`](content/dances.md) is the canonical content source.
 - The browser reads and validates that file directly on every page load. Content

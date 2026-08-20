@@ -61,7 +61,7 @@ python3 scripts/build-srtm-basemap.py \
   /tmp/greece-srtm-relief.mbtiles \
   --west 12 --south 34 --east 38 --north 44 \
   --min-zoom 0 --max-zoom 11 --quality 76 \
-  --work-dir /tmp/dance-atlas-srtm-work
+  --work-dir /tmp/greek-folk-dance-map-srtm-work
 
 go-pmtiles convert \
   /tmp/greece-srtm-relief.mbtiles \

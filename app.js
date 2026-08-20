@@ -132,8 +132,8 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
   let mapLanguage = "en";
   let selectedMapOption = "terrain";
   try {
-    const savedLanguage = localStorage.getItem("dance-atlas-language");
-    const savedMapOption = localStorage.getItem("dance-atlas-map-option");
+    const savedLanguage = localStorage.getItem("greek-folk-dance-map-language");
+    const savedMapOption = localStorage.getItem("greek-folk-dance-map-option");
     if (supportedLanguages.includes(savedLanguage)) mapLanguage = savedLanguage;
     if (supportedMapOptions.has(savedMapOption)) selectedMapOption = savedMapOption;
   } catch {}
@@ -202,7 +202,7 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
       map.setLayoutProperty("country-labels", "text-field", boundaryLabelExpression(language));
     }
     scheduleMapLabelLayout();
-    try { localStorage.setItem("dance-atlas-language", language); } catch {}
+    try { localStorage.setItem("greek-folk-dance-map-language", language); } catch {}
   }
 
   els.languageOptions.querySelectorAll(".language-button").forEach((button) => {
@@ -215,7 +215,7 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
     if (!supportedMapOptions.has(option) || option === selectedMapOption) return;
     selectedMapOption = option;
     map.setStyle(selectedMapStyle());
-    try { localStorage.setItem("dance-atlas-map-option", option); } catch {}
+    try { localStorage.setItem("greek-folk-dance-map-option", option); } catch {}
   });
 
   const markerById = new Map();
