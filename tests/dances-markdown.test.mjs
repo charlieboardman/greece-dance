@@ -20,14 +20,17 @@ test("the canonical Markdown remains valid as its content changes", async () => 
   assert.ok(atlas.places.every((place) => typeof place.info.el === "string"));
   assert.equal(new Set(atlas.regions.map((region) => region.id)).size, atlas.regions.length);
   assert.equal(new Set(atlas.places.map((place) => place.id)).size, atlas.places.length);
-  assert.doesNotMatch(source, /^(?:id|has_dance|kind|min_zoom|priority|order)=/mu);
+  assert.doesNotMatch(
+    source,
+    /^(?:greek_name|latitude|longitude|subregion|subregion_greek_name|color)=|^### info/mu
+  );
 });
 
 test("HTML comments apply globally and can span multiple lines", () => {
   const atlas = parseDancesMarkdown(`
 # Test Region <!-- source note -->
-greek_name=Περιοχή <!-- translated name -->
-color=#336699
+Greek: Περιοχή <!-- translated name -->
+Color: #336699
 
 <!--
 This multi-line comment is ignored.
@@ -35,11 +38,11 @@ It preserves the source line count.
 -->
 
 ## Test Village <!-- source note -->
-greek_name=Χωριό
-latitude=40
-longitude=22
+Greek: Χωριό
+Latitude: 40
+Longitude: 22
 
-### info
+Info:
 Visit https://example.com/path//segment
 Keep this <!-- remove the aside --> text.
 <!-- Remove this entire line. -->
@@ -69,19 +72,19 @@ test("unclosed HTML comments identify their starting line", () => {
 test("Markdown headings inside fenced info code remain content", () => {
   const atlas = parseDancesMarkdown(`
 # Test Region
-greek_name=Περιοχή
-color=#336699
+Greek: Περιοχή
+Color: #336699
 
 ## Test Village
-greek_name=Χωριό
-latitude=40
-longitude=22
+Greek: Χωριό
+Latitude: 40
+Longitude: 22
 
-### info
+Info:
 \`\`\`md
 # This is not a region
 ## This is not a village
-### info
+Info:
 \`\`\`
 
 After the code.
@@ -93,21 +96,54 @@ After the code.
   assert.match(atlas.places[0].info.en, /After the code\.$/u);
 });
 
+test("level-three and deeper Markdown headings remain information", () => {
+  const atlas = parseDancesMarkdown(`
+# Test Region
+Greek: Περιοχή
+Color: #336699
+## Test Village
+Greek: Χωριό
+Latitude: 40
+Longitude: 22
+Info:
+### History
+Text beneath the heading.
+  `);
+
+  assert.equal(atlas.places[0].info.en, "### History\nText beneath the heading.");
+});
+
+test("structural whitespace and field capitalization do not affect parsing", () => {
+  const atlas = parseDancesMarkdown(`# Test Region
+  greek : Περιοχή
+COLOR:#336699
+## Test Village
+Greek: Χωριό
+Latitude : 40
+longitude:22
+Info:
+Text.`);
+
+  assert.equal(atlas.regions[0].names.el, "Περιοχή");
+  assert.deepEqual(atlas.places[0].coordinates, [40, 22]);
+  assert.equal(atlas.places[0].info.en, "Text.");
+});
+
 test("English and Greek info sections are parsed independently", () => {
   const atlas = parseDancesMarkdown(`
 # Test Region
-greek_name=Περιοχή
-color=#336699
+Greek: Περιοχή
+Color: #336699
 
 ## Test Village
-greek_name=Χωριό
-latitude=40
-longitude=22
+Greek: Χωριό
+Latitude: 40
+Longitude: 22
 
-### info
+Info:
 English **description**
 
-### info_greek
+Greek info:
 Ελληνική **περιγραφή**
   `);
 
@@ -119,15 +155,15 @@ English **description**
 
 test("duplicate localized info sections identify their line", () => {
   const source = `# Test Region
-greek_name=Περιοχή
-color=#336699
+Greek: Περιοχή
+Color: #336699
 ## Test Village
-greek_name=Χωριό
-latitude=40
-longitude=22
-### info_greek
+Greek: Χωριό
+Latitude: 40
+Longitude: 22
+Greek info:
 Πρώτο
-### info_greek
+Greek info:
 Δεύτερο`;
 
   assert.throws(
@@ -135,31 +171,31 @@ longitude=22
     (error) => {
       assert.ok(error instanceof DancesMarkdownError);
       assert.equal(error.location, "dances.md, line 10");
-      assert.equal(error.message, "A village can only have one info_greek section.");
+      assert.equal(error.message, "A village can only have one Greek info section.");
       return true;
     }
   );
 });
 
-test("localized info headings inside fenced code remain content", () => {
+test("localized info labels inside fenced code remain content", () => {
   const atlas = parseDancesMarkdown(`
 # Test Region
-greek_name=Περιοχή
-color=#336699
+Greek: Περιοχή
+Color: #336699
 ## Test Village
-greek_name=Χωριό
-latitude=40
-longitude=22
-### info
+Greek: Χωριό
+Latitude: 40
+Longitude: 22
+Info:
 \`\`\`md
-### info_greek
+Greek info:
 \`\`\`
 Still English.
-### info_greek
+Greek info:
 Ελληνικά.
   `);
 
-  assert.match(atlas.places[0].info.en, /### info_greek/u);
+  assert.match(atlas.places[0].info.en, /Greek info:/u);
   assert.match(atlas.places[0].info.en, /Still English\.$/u);
   assert.equal(atlas.places[0].info.el, "Ελληνικά.");
 });
@@ -167,63 +203,96 @@ Still English.
 test("subregion fields must be paired and consistently translated", () => {
   const missingTranslation = `
 # Test Region
-greek_name=Περιοχή
-color=#336699
+Greek: Περιοχή
+Color: #336699
 ## First Village
-greek_name=Πρώτο Χωριό
-latitude=40
-longitude=22
-subregion=Test Area
+Greek: Πρώτο Χωριό
+Latitude: 40
+Longitude: 22
+Subregion: Test Area
   `;
   assert.throws(
     () => parseDancesMarkdown(missingTranslation),
     (error) => {
       assert.ok(error instanceof DancesMarkdownError);
-      assert.equal(error.location, "dances.md, line 5, field “subregion_greek_name”");
+      assert.equal(error.location, "dances.md, line 5, field “Greek subregion”");
       return true;
     }
   );
 
   const inconsistentTranslation = `
 # Test Region
-greek_name=Περιοχή
-color=#336699
+Greek: Περιοχή
+Color: #336699
 ## First Village
-greek_name=Πρώτο Χωριό
-latitude=40
-longitude=22
-subregion=Test Area
-subregion_greek_name=Πρώτη Περιοχή
+Greek: Πρώτο Χωριό
+Latitude: 40
+Longitude: 22
+Subregion: Test Area
+Greek subregion: Πρώτη Περιοχή
 ## Second Village
-greek_name=Δεύτερο Χωριό
-latitude=41
-longitude=23
-subregion=Test Area
-subregion_greek_name=Δεύτερη Περιοχή
+Greek: Δεύτερο Χωριό
+Latitude: 41
+Longitude: 23
+Subregion: Test Area
+Greek subregion: Δεύτερη Περιοχή
   `;
   assert.throws(
     () => parseDancesMarkdown(inconsistentTranslation),
-    /Use the same subregion_greek_name/u
+    /Use the same Greek subregion/u
   );
 });
 
 test("validation errors identify the line and field", () => {
   const source = `
 # Test Region
-greek_name=Περιοχή
-color=#336699
+Greek: Περιοχή
+Color: #336699
 ## Broken Village
-greek_name=Χωριό
-latitude=nowhere
-longitude=22
+Greek: Χωριό
+Latitude: nowhere
+Longitude: 22
   `;
 
   assert.throws(
     () => parseDancesMarkdown(source),
     (error) => {
       assert.ok(error instanceof DancesMarkdownError);
-      assert.equal(error.location, "dances.md, line 7, field “latitude”");
-      assert.equal(error.message, "This field must be a number.");
+      assert.equal(error.location, "dances.md, line 7, field “Latitude”");
+      assert.equal(error.message, "This field must be a decimal number.");
+      return true;
+    }
+  );
+});
+
+test("coordinate fields accept whole numbers and arbitrary decimal precision", () => {
+  const atlas = parseDancesMarkdown(`
+# Test Region
+Greek: Περιοχή
+Color: #336699
+## Test Village
+Greek: Χωριό
+Latitude: 40
+Longitude: 22.123456789
+  `);
+
+  assert.deepEqual(atlas.places[0].coordinates, [40, 22.123456789]);
+});
+
+test("information starts on the line after its label", () => {
+  assert.throws(
+    () => parseDancesMarkdown(`# Test Region
+Greek: Περιοχή
+Color: #336699
+## Test Village
+Greek: Χωριό
+Latitude: 40
+Longitude: 22
+Info: Inline text`),
+    (error) => {
+      assert.ok(error instanceof DancesMarkdownError);
+      assert.equal(error.location, "dances.md, line 8, field “Info”");
+      assert.equal(error.message, "Place information on the lines following this label.");
       return true;
     }
   );

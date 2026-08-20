@@ -1,13 +1,13 @@
 # Anatoliki Romelia <!-- often called Northern Thrace near Burgas Bulgaria -->
-greek_name=Ανατολική Ρωμυλία
-color=#d71908
+Greek: Ανατολική Ρωμυλία
+Color: #d71908
 
 ## Bana
-greek_name=Μπάνα
-latitude=42.775
-longitude=27.817
+Greek: Μπάνα
+Latitude: 42.775
+Longitude: 27.817
 
-### info
+Info:
 Kiniyitos
 
 Kallinitikos
@@ -16,7 +16,7 @@ Tremouliastos
 
 Sfarlis
 
-### info_greek
+Greek info:
 Κυνηγητός
 
 Καλλινίτικος
@@ -26,18 +26,18 @@ Sfarlis
 Σφαρλής
 
 ## Boyialiki
-greek_name=Μπογιαλίκι
-latitude=42.32
-longitude=26.434
+Greek: Μπογιαλίκι
+Latitude: 42.32
+Longitude: 26.434
 
-### info
+Info:
 Troiro
 
 Sfarlis
 
 Mandilatos
 
-### info_greek
+Greek info:
 Τροΐρω
 
 Σφαρλής
@@ -45,11 +45,11 @@ Mandilatos
 Μαντηλάτος
 
 ## Kavakli
-greek_name=Καβακλί
-latitude=42.085
-longitude=26.332
+Greek: Καβακλί
+Latitude: 42.085
+Longitude: 26.332
 
-### info
+Info:
 Tsestos
 
 Singathistos
@@ -58,7 +58,7 @@ Zonaradikos
 
 Zervos
 
-### info_greek
+Greek info:
 Τσέστος
 
 Συγκαθιστός
@@ -68,15 +68,15 @@ Zervos
 Ζερβός
 
 # Thrace <!-- often called Western Thrace -->
-greek_name=Θράκη
-color=#15b898
+Greek: Θράκη
+Color: #15b898
 
 ## Asvestades
-greek_name=Ασβεστάδες
-latitude=41.349
-longitude=26.361
+Greek: Ασβεστάδες
+Latitude: 41.349
+Longitude: 26.361
 
-### info
+Info:
 Dance 1
 
 Dance 2
@@ -84,11 +84,11 @@ Dance 2
 etc
 
 ## Metaxades
-greek_name=Μεταξάδες
-latitude=41.421
-longitude=26.225
+Greek: Μεταξάδες
+Latitude: 41.421
+Longitude: 26.225
 
-### info
+Info:
 Dance 1
 
 Dance 2
@@ -96,15 +96,15 @@ Dance 2
 etc
 
 # Macedonia, Eastern
-greek_name=Μακεδονία, Ανατολική
-color=#0365fd
+Greek: Μακεδονία, Ανατολική
+Color: #0365fd
 
 ## Serres
-greek_name=Σέρρες
-latitude=41.091
-longitude=23.55
+Greek: Σέρρες
+Latitude: 41.091
+Longitude: 23.55
 
-### info
+Info:
 Dance 1
 
 Dance 2
@@ -112,11 +112,11 @@ Dance 2
 etc
 
 ## Drama
-greek_name=Δράμα
-latitude=41.15
-longitude=24.147
+Greek: Δράμα
+Latitude: 41.15
+Longitude: 24.147
 
-### info
+Info:
 Dance 1
 
 Dance 2
@@ -124,15 +124,15 @@ Dance 2
 etc
 
 # Thessaloniki
-greek_name=Θεσσαλονίκη
-color=#af5a1f
+Greek: Θεσσαλονίκη
+Color: #af5a1f
 
 ## Pylaia
-greek_name=Πυλαία
-latitude=40.601
-longitude=22.987
+Greek: Πυλαία
+Latitude: 40.601
+Longitude: 22.987
 
-### info
+Info:
 Dance 1
 
 Dance 2
@@ -140,15 +140,15 @@ Dance 2
 etc
 
 # Macedonia, Northern
-greek_name=Μακεδονία, Βόρεια
-color=#fe843d
+Greek: Μακεδονία, Βόρεια
+Color: #fe843d
 
 ## Aridaia
-greek_name=Αριδαία
-latitude=40.976
-longitude=22.061
+Greek: Αριδαία
+Latitude: 40.976
+Longitude: 22.061
 
-### info
+Info:
 Gaida
 
 Soulemonovo
@@ -159,7 +159,7 @@ Rude Giagne
 
 Bukit Resivat
 
-### info_greek
+Greek info:
 Γκάιντα
 
 Σουλεϊμάνοβο
@@ -171,48 +171,48 @@ Bukit Resivat
 Μπούκιτε Ραζβίβατ
 
 ## Edessa
-greek_name=Έδεσσα
-latitude=40.801
-longitude=22.05
+Greek: Έδεσσα
+Latitude: 40.801
+Longitude: 22.05
 
-### info
+Info:
 Pousnitsa
 
-### info_greek
+Greek info:
 Πουσνίτσα
 
 ## Episkopi
-greek_name=Επισκοπή
-latitude=40.68769
-longitude=22.13735
+Greek: Επισκοπή
+Latitude: 40.68769
+Longitude: 22.13735
 
-### info
+Info:
 Baiduskino
 
 Patrounino
 
-### info_greek
+Greek info:
 Μπαϊντούσκινο
 
 Πατρούνινο
 
 ## Promarhoi
-greek_name=Πρόμαχοι
-latitude=41.025
-longitude=22.004
+Greek: Πρόμαχοι
+Latitude: 41.025
+Longitude: 22.004
 
-### info
+Info:
 Marena
 
-### info_greek
+Greek info:
 Μάρενα
 
 ## Orma
-greek_name=Όρμα
-latitude=40.952
-longitude=21.926
+Greek: Όρμα
+Latitude: 40.952
+Longitude: 21.926
 
-### info
+Info:
 Dance 1
 
 Dance 2
@@ -220,11 +220,11 @@ Dance 2
 etc
 
 ## Karydia
-greek_name=Καρυδιά
-latitude=40.848
-longitude=21.955
+Greek: Καρυδιά
+Latitude: 40.848
+Longitude: 21.955
 
-### info
+Info:
 Dance 1
 
 Dance 2
@@ -232,33 +232,33 @@ Dance 2
 etc
 
 ## Arnissa
-greek_name=Άρνισσα
-latitude=40.798
-longitude=21.835
+Greek: Άρνισσα
+Latitude: 40.798
+Longitude: 21.835
 
-### info
+Info:
 Poustseno
 
-### info_greek
+Greek info:
 Πουστσένο
 
 # Macedonia, Central
-greek_name=Μακεδονία, Κεντρική
-color=#879f18
+Greek: Μακεδονία, Κεντρική
+Color: #879f18
 
 ## Goumenissa
-greek_name=Γουμένισσα
-latitude=40.947
-longitude=22.452
+Greek: Γουμένισσα
+Latitude: 40.947
+Longitude: 22.452
 
-### info
+Info:
 Lissavo
 
 Olymbia
 
 Gaida
 
-### info_greek
+Greek info:
 Λισσάβω
 
 Ολυμπία
@@ -266,11 +266,11 @@ Gaida
 Γκάιντα
 
 ## Naoussa
-greek_name=Νάουσα
-latitude=40.631
-longitude=22.07
+Greek: Νάουσα
+Latitude: 40.631
+Longitude: 22.07
 
-### info
+Info:
 Dance 1
 
 Dance 2
@@ -278,11 +278,11 @@ Dance 2
 etc
 
 ## Roumlouki
-greek_name=Ρουμλούκι
-latitude=40.628
-longitude=22.445
+Greek: Ρουμλούκι
+Latitude: 40.628
+Longitude: 22.445
 
-### info
+Info:
 Dance 1
 
 Dance 2
@@ -290,15 +290,15 @@ Dance 2
 etc
 
 # Macedonia, Western
-greek_name=Μακεδονία, Δυτική
-color=#9322fb
+Greek: Μακεδονία, Δυτική
+Color: #9322fb
 
 ## Florina
-greek_name=Φλώρινα
-latitude=40.779
-longitude=21.407
+Greek: Φλώρινα
+Latitude: 40.779
+Longitude: 21.407
 
-### info
+Info:
 Dance 1
 
 Dance 2
@@ -306,11 +306,11 @@ Dance 2
 etc
 
 ## Kastoria
-greek_name=Καστοριά
-latitude=40.522
-longitude=21.264
+Greek: Καστοριά
+Latitude: 40.522
+Longitude: 21.264
 
-### info
+Info:
 Dance 1
 
 Dance 2
@@ -318,11 +318,11 @@ Dance 2
 etc
 
 ## Grevena
-greek_name=Γρεβενά
-latitude=40.084
-longitude=21.427
+Greek: Γρεβενά
+Latitude: 40.084
+Longitude: 21.427
 
-### info
+Info:
 Dance 1
 
 Dance 2
@@ -330,11 +330,11 @@ Dance 2
 etc
 
 ## Deskati
-greek_name=Δεσκάτη
-latitude=39.926
-longitude=21.809
+Greek: Δεσκάτη
+Latitude: 39.926
+Longitude: 21.809
 
-### info
+Info:
 Dance 1
 
 Dance 2
@@ -342,15 +342,15 @@ Dance 2
 etc
 
 # Attiki
-greek_name=Αττική
-color=#fb4c10
+Greek: Αττική
+Color: #fb4c10
 
 ## Megara
-greek_name=Μέγαρα
-latitude=37.997
-longitude=23.345
+Greek: Μέγαρα
+Latitude: 37.997
+Longitude: 23.345
 
-### info
+Info:
 Dance 1
 
 Dance 2
@@ -358,11 +358,11 @@ Dance 2
 etc
 
 ## Salamina
-greek_name=Σαλαμίνα
-latitude=37.965
-longitude=23.493
+Greek: Σαλαμίνα
+Latitude: 37.965
+Longitude: 23.493
 
-### info
+Info:
 Dance 1
 
 Dance 2
@@ -370,19 +370,19 @@ Dance 2
 etc
 
 # Peloponnisos
-greek_name=Πελοπόννησος
-color=#fa5cfe
+Greek: Πελοπόννησος
+Color: #fa5cfe
 
 # Thessaly
-greek_name=Θεσσαλία
-color=#2dbe01
+Greek: Θεσσαλία
+Color: #2dbe01
 
 ## Sofades
-greek_name=Σοφάδες
-latitude=39.338
-longitude=22.097
+Greek: Σοφάδες
+Latitude: 39.338
+Longitude: 22.097
 
-### info
+Info:
 Dance 1
 
 Dance 2
@@ -390,13 +390,13 @@ Dance 2
 etc
 
 ## Argithea
-greek_name=Αργιθέα
-latitude=39.357
-longitude=21.538
-subregion=Agrafa
-subregion_greek_name=Άγραφα
+Greek: Αργιθέα
+Latitude: 39.357
+Longitude: 21.538
+Subregion: Agrafa
+Greek subregion: Άγραφα
 
-### info
+Info:
 Dance 1
 
 Dance 2
@@ -404,13 +404,13 @@ Dance 2
 etc
 
 ## Krioneri
-greek_name=Κρυονέρι
-latitude=39.332
-longitude=21.686
-subregion=Agrafa
-subregion_greek_name=Άγραφα
+Greek: Κρυονέρι
+Latitude: 39.332
+Longitude: 21.686
+Subregion: Agrafa
+Greek subregion: Άγραφα
 
-### info
+Info:
 Dance 1
 
 Dance 2
@@ -418,13 +418,13 @@ Dance 2
 etc
 
 ## Thrapsimi
-greek_name=Θραψίμι
-latitude=39.173
-longitude=22.007
-subregion=Agrafa
-subregion_greek_name=Άγραφα
+Greek: Θραψίμι
+Latitude: 39.173
+Longitude: 22.007
+Subregion: Agrafa
+Greek subregion: Άγραφα
 
-### info
+Info:
 Dance 1
 
 Dance 2
@@ -432,15 +432,15 @@ Dance 2
 etc
 
 # Pieria <!-- Mt Olympus area -->
-greek_name=Πιερία
-color=#e887b5
+Greek: Πιερία
+Color: #e887b5
 
 ## Rizomata
-greek_name=Ριζώματα
-latitude=40.351
-longitude=22.212
+Greek: Ριζώματα
+Latitude: 40.351
+Longitude: 22.212
 
-### info
+Info:
 Katsiamba
 
 Tsournavitiko
@@ -449,7 +449,7 @@ Peristerouda
 
 Stella
 
-### info_greek
+Greek info:
 Κατσιάμπα
 
 Τσουρναβίτκου
@@ -459,22 +459,22 @@ Stella
 Στέλλα
 
 ## Elatohori
-greek_name=Ελατοχώρι
-latitude=40.32
-longitude=22.265
+Greek: Ελατοχώρι
+Latitude: 40.32
+Longitude: 22.265
 
-### info
+Info:
 Tsamiko
 
-### info_greek
+Greek info:
 Τσάμικο
 
 ## Toxo
-greek_name=Τόξο
-latitude=40.342
-longitude=22.397
+Greek: Τόξο
+Latitude: 40.342
+Longitude: 22.397
 
-### info
+Info:
 Dance 1
 
 Dance 2
@@ -482,11 +482,11 @@ Dance 2
 etc
 
 ## Dion
-greek_name=Δίον
-latitude=40.172
-longitude=22.487
+Greek: Δίον
+Latitude: 40.172
+Longitude: 22.487
 
-### info
+Info:
 Dance 1
 
 Dance 2
@@ -494,11 +494,11 @@ Dance 2
 etc
 
 ## Vrontou
-greek_name=Βροντού
-latitude=40.192
-longitude=22.433
+Greek: Βροντού
+Latitude: 40.192
+Longitude: 22.433
 
-### info
+Info:
 Dance 1
 
 Dance 2
@@ -506,27 +506,27 @@ Dance 2
 etc
 
 # Epirus
-greek_name=Ήπειρος
-color=#148a53
+Greek: Ήπειρος
+Color: #148a53
 
 # Sarakatsani
-greek_name=Σαρακατσάνοι
-color=#c9237d
+Greek: Σαρακατσάνοι
+Color: #c9237d
 
 # Evia
-greek_name=Εύβοια
-color=#46acfc
+Greek: Εύβοια
+Color: #46acfc
 
 # Ionian Islands
-greek_name=Ιόνια Νησιά
-color=#5b83f8
+Greek: Ιόνια Νησιά
+Color: #5b83f8
 
 ## Kefallonia
-greek_name=Κεφαλονιά
-latitude=38.266
-longitude=20.537
+Greek: Κεφαλονιά
+Latitude: 38.266
+Longitude: 20.537
 
-### info
+Info:
 Divaratikos
 
 Ballos
@@ -539,7 +539,7 @@ Barbounaki
 
 Vlahopoules
 
-### info_greek
+Greek info:
 Διβαράτικος
 
 Μπάλος
@@ -553,11 +553,11 @@ Vlahopoules
 Βλαχοπούλες
 
 ## Kerkyra <!-- Corfu -->
-greek_name=Κέρκυρα
-latitude=39.591
-longitude=19.86
+Greek: Κέρκυρα
+Latitude: 39.591
+Longitude: 19.86
 
-### info
+Info:
 Dance 1
 
 Dance 2
@@ -565,11 +565,11 @@ Dance 2
 etc
 
 ## Zakinthos
-greek_name=Ζάκυνθος
-latitude=37.789
-longitude=20.79
+Greek: Ζάκυνθος
+Latitude: 37.789
+Longitude: 20.79
 
-### info
+Info:
 Dance 1
 
 Dance 2
@@ -577,22 +577,22 @@ Dance 2
 etc
 
 # Cyclades Islands
-greek_name=Κυκλάδες
-color=#ac82ff
+Greek: Κυκλάδες
+Color: #ac82ff
 
 ## Naxos
-greek_name=Νάξος
-latitude=37.06
-longitude=25.471
+Greek: Νάξος
+Latitude: 37.06
+Longitude: 25.471
 
-### info
+Info:
 Ballos
 
 Pidihtos Ballos
 
 Vlaha
 
-### info_greek
+Greek info:
 Μπάλος
 
 Πηδηχτός Μπάλος
@@ -600,11 +600,11 @@ Vlaha
 Βλάχα
 
 ## Paros
-greek_name=Πάρος
-latitude=37.065
-longitude=25.192
+Greek: Πάρος
+Latitude: 37.065
+Longitude: 25.192
 
-### info
+Info:
 Dance 1
 
 Dance 2
@@ -612,30 +612,30 @@ Dance 2
 etc
 
 ## Ikaria
-greek_name=Ικαρία
-latitude=37.6
-longitude=26.152
+Greek: Ικαρία
+Latitude: 37.6
+Longitude: 26.152
 
-### info
+Info:
 Ikariotiko
 
-### info_greek
+Greek info:
 Ικαριώτικος
 
 # Sporades Islands
-greek_name=Σποράδες
-color=#0c82bf
+Greek: Σποράδες
+Color: #0c82bf
 
 # Aegean Islands
-greek_name=Νησιά του Αιγαίου
-color=#735ed1
+Greek: Νησιά του Αιγαίου
+Color: #735ed1
 
 ## Lesvos
-greek_name=Λέσβος
-latitude=39.176
-longitude=25.999
+Greek: Λέσβος
+Latitude: 39.176
+Longitude: 25.999
 
-### info
+Info:
 Dance 1
 
 Dance 2
@@ -643,19 +643,19 @@ Dance 2
 etc
 
 # Dodecanese Islands
-greek_name=Δωδεκάνησα
-color=#d00aca
+Greek: Δωδεκάνησα
+Color: #d00aca
 
 # Crete
-greek_name=Κρήτη
-color=#fe1363
+Greek: Κρήτη
+Color: #fe1363
 
 ## Hania
-greek_name=Χανιά
-latitude=35.512
-longitude=24.019
+Greek: Χανιά
+Latitude: 35.512
+Longitude: 24.019
 
-### info
+Info:
 Syrtos
 
 Siganos
@@ -664,7 +664,7 @@ Pentozali
 
 Maleviziotikos
 
-### info_greek
+Greek info:
 Συρτός
 
 Σιγανός
@@ -674,11 +674,11 @@ Maleviziotikos
 Μαλεβιζιώτικος
 
 ## Rethimno
-greek_name=Ρέθυμνο
-latitude=35.368
-longitude=24.474
+Greek: Ρέθυμνο
+Latitude: 35.368
+Longitude: 24.474
 
-### info
+Info:
 Dance 1
 
 Dance 2
@@ -686,19 +686,19 @@ Dance 2
 etc
 
 # Cyprus
-greek_name=Κύπρος
-color=#c0851f
+Greek: Κύπρος
+Color: #c0851f
 
 # Asia Minor <!-- coastal Turkey -->
-greek_name=Μικρά Ασία
-color=#fd3ab3
+Greek: Μικρά Ασία
+Color: #fd3ab3
 
 ## Alatsata
-greek_name=Αλάτσατα
-latitude=38.285
-longitude=26.375
+Greek: Αλάτσατα
+Latitude: 38.285
+Longitude: 26.375
 
-### info
+Info:
 Dance 1
 
 Dance 2
@@ -706,9 +706,9 @@ Dance 2
 etc
 
 # Cappadokia <!-- central Turkey -->
-greek_name=Καππαδοκία
-color=#cf6872
+Greek: Καππαδοκία
+Color: #cf6872
 
 # Pontos <!-- North Turkey near Black Sea -->
-greek_name=Πόντος
-color=#a862a8
+Greek: Πόντος
+Color: #a862a8

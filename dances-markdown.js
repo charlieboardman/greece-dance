@@ -14,9 +14,29 @@ export class DancesMarkdownError extends Error {
   }
 }
 
+const FIELD_KEYS = new Map([
+  ["greek", "greek_name"],
+  ["color", "color"],
+  ["latitude", "latitude"],
+  ["longitude", "longitude"],
+  ["subregion", "subregion"],
+  ["greek subregion", "subregion_greek_name"]
+]);
+const FIELD_LABELS = {
+  greek_name: "Greek",
+  color: "Color",
+  latitude: "Latitude",
+  longitude: "Longitude",
+  subregion: "Subregion",
+  subregion_greek_name: "Greek subregion"
+};
 const REGION_FIELDS = new Set(["greek_name", "color"]);
 const VILLAGE_FIELDS = new Set([
   "greek_name", "latitude", "longitude", "subregion", "subregion_greek_name"
+]);
+const INFO_LABELS = new Map([
+  ["info", "en"],
+  ["greek info", "el"]
 ]);
 
 export function parseDancesMarkdown(source) {
@@ -44,7 +64,11 @@ export function parseDancesMarkdown(source) {
     const subregionGreekName = optionalField(currentVillage, "subregion_greek_name");
     if (Boolean(subregion) !== Boolean(subregionGreekName)) {
       const missing = subregion ? "subregion_greek_name" : "subregion";
-      fail(`${missing} is required when its companion subregion field is present.`, currentVillage.line, missing);
+      fail(
+        `${fieldLabel(missing)} is required when its companion subregion field is present.`,
+        currentVillage.line,
+        fieldLabel(missing)
+      );
     }
 
     const idParts = [currentRegion.id];
@@ -75,7 +99,7 @@ export function parseDancesMarkdown(source) {
           fail(
             `Subregion “${subregion}” produces the same generated key as another subregion in ${currentRegion.name}.`,
             currentVillage.line,
-            "subregion"
+            fieldLabel("subregion")
           );
         }
         group = {
@@ -88,9 +112,9 @@ export function parseDancesMarkdown(source) {
         currentRegion.subregions.push(group);
       } else if (group.names.el !== subregionGreekName) {
         fail(
-          `Use the same subregion_greek_name for every village in “${subregion}”.`,
+          `Use the same Greek subregion for every village in “${subregion}”.`,
           fieldLine(currentVillage, "subregion_greek_name"),
-          "subregion_greek_name"
+          fieldLabel("subregion_greek_name")
         );
       }
       group.villages.push(village);
@@ -120,9 +144,9 @@ export function parseDancesMarkdown(source) {
     currentRegion.color = requiredField(currentRegion, "color").toLowerCase();
     if (!/^#[0-9a-f]{6}$/u.test(currentRegion.color)) {
       fail(
-        "color must be a six-digit hex value such as #e5a83f.",
+        "Color must be a six-digit hex value such as #e5a83f.",
         fieldLine(currentRegion, "color"),
-        "color"
+        fieldLabel("color")
       );
     }
     delete currentRegion._fields;
@@ -158,7 +182,7 @@ export function parseDancesMarkdown(source) {
         return;
       }
     }
-    const heading = /^(#{1,6})\s+(.+?)\s*$/u.exec(line);
+    const heading = /^\s{0,3}(#{1,6})\s+(.+?)\s*$/u.exec(line);
 
     if (heading?.[1] === "#") {
       finishRegion();
@@ -196,17 +220,18 @@ export function parseDancesMarkdown(source) {
       return;
     }
 
-    const infoHeading = heading?.[1] === "###"
-      ? { info: "en", info_greek: "el" }[heading[2].trim().toLowerCase()]
-      : null;
-    if (infoHeading) {
-      if (!currentVillage) fail("An info section must appear beneath a village heading.", lineNumber);
-      const sectionName = infoHeading === "en" ? "info" : "info_greek";
-      if (currentVillage._infoSections.has(infoHeading)) {
-        fail(`A village can only have one ${sectionName} section.`, lineNumber);
+    const labeledLine = parseLabeledLine(line);
+    const infoLanguage = labeledLine ? INFO_LABELS.get(labeledLine.label) : null;
+    if (infoLanguage) {
+      if (labeledLine.value) {
+        fail("Place information on the lines following this label.", lineNumber, infoLabel(infoLanguage));
       }
-      currentVillage._infoSections.set(infoHeading, lineNumber);
-      currentInfoLanguage = infoHeading;
+      if (!currentVillage) fail("Information must appear beneath a village heading.", lineNumber);
+      if (currentVillage._infoSections.has(infoLanguage)) {
+        fail(`A village can only have one ${infoLabel(infoLanguage)} section.`, lineNumber);
+      }
+      currentVillage._infoSections.set(infoLanguage, lineNumber);
+      currentInfoLanguage = infoLanguage;
       infoFence = null;
       return;
     }
@@ -219,24 +244,31 @@ export function parseDancesMarkdown(source) {
     if (!line.trim()) return;
     if (heading) {
       fail(
-        "Only region (#), village (##), info (### info), and Greek info (### info_greek) headings are allowed here.",
+        "Only region (#) and village (##) headings are allowed outside information.",
         lineNumber
       );
     }
 
-    const property = /^([a-z_]+)\s*=(.*)$/u.exec(line);
-    if (!property) {
-      fail("Expected a heading, a key=value field, or an HTML comment.", lineNumber);
+    if (!labeledLine) {
+      fail("Expected a heading, a Field: value line, or an HTML comment.", lineNumber);
     }
-    const [, key, rawValue] = property;
+    if (INFO_LABELS.has(labeledLine.label)) {
+      fail("Place information on the lines following this label.", lineNumber, canonicalLabel(labeledLine.label));
+    }
+    const key = FIELD_KEYS.get(labeledLine.label);
     const record = currentVillage || currentRegion;
-    if (!record) fail("Fields must appear beneath a region or village heading.", lineNumber, key);
+    const shownLabel = key ? fieldLabel(key) : canonicalLabel(labeledLine.label);
+    if (!record) fail("Fields must appear beneath a region or village heading.", lineNumber, shownLabel);
     const allowedFields = currentVillage ? VILLAGE_FIELDS : REGION_FIELDS;
-    if (!allowedFields.has(key)) {
-      fail(`Unknown ${currentVillage ? "village" : "region"} field “${key}”.`, lineNumber, key);
+    if (!key || !allowedFields.has(key)) {
+      fail(
+        `Unknown ${currentVillage ? "village" : "region"} field “${shownLabel}”.`,
+        lineNumber,
+        shownLabel
+      );
     }
-    if (record._fields.has(key)) fail(`Duplicate field “${key}”.`, lineNumber, key);
-    record._fields.set(key, { value: rawValue.trim(), line: lineNumber });
+    if (record._fields.has(key)) fail(`Duplicate field “${shownLabel}”.`, lineNumber, shownLabel);
+    record._fields.set(key, { value: labeledLine.value, line: lineNumber });
   });
 
   finishRegion();
@@ -280,7 +312,7 @@ export function stripComments(source) {
 
 function requiredField(record, key) {
   const value = optionalField(record, key);
-  if (!value) fail("This field is required.", record.line, key);
+  if (!value) fail("This field is required.", record.line, fieldLabel(key));
   return value;
 }
 
@@ -294,12 +326,42 @@ function fieldLine(record, key) {
 
 function coordinateField(record, key, minimum, maximum) {
   const value = requiredField(record, key);
+  if (!/^[+-]?(?:\d+(?:\.\d+)?|\.\d+)$/u.test(value)) {
+    fail("This field must be a decimal number.", fieldLine(record, key), fieldLabel(key));
+  }
   const number = Number(value);
-  if (!Number.isFinite(number)) fail("This field must be a number.", fieldLine(record, key), key);
+  if (!Number.isFinite(number)) {
+    fail("This field must be a decimal number.", fieldLine(record, key), fieldLabel(key));
+  }
   if (number < minimum || number > maximum) {
-    fail(`${key} must be between ${minimum} and ${maximum}.`, fieldLine(record, key), key);
+    fail(
+      `${fieldLabel(key)} must be between ${minimum} and ${maximum}.`,
+      fieldLine(record, key),
+      fieldLabel(key)
+    );
   }
   return number;
+}
+
+function parseLabeledLine(line) {
+  const match = /^\s*([^:]+?)\s*:\s*(.*?)\s*$/u.exec(line);
+  if (!match) return null;
+  return {
+    label: match[1].trim().replace(/\s+/gu, " ").toLowerCase(),
+    value: match[2].trim()
+  };
+}
+
+function fieldLabel(key) {
+  return FIELD_LABELS[key] || key;
+}
+
+function infoLabel(language) {
+  return language === "el" ? "Greek info" : "Info";
+}
+
+function canonicalLabel(label) {
+  return label.replace(/(^|\s)\p{Letter}/gu, (character) => character.toUpperCase());
 }
 
 function slug(value) {
