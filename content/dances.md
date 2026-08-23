@@ -95,6 +95,18 @@ Dance 2
 
 etc
 
+## Hionades
+Greek: Χιονάδες
+Latitude: 41.490
+Longitude: 26.318
+
+Info:
+Dance 1
+
+Dance 2
+
+etc
+
 # Macedonia, Eastern
 Greek: Μακεδονία, Ανατολική
 Color: #0365fd
@@ -127,10 +139,22 @@ etc
 Greek: Θεσσαλονίκη
 Color: #af5a1f
 
-## Pylaia
+## Pylea
 Greek: Πυλαία
 Latitude: 40.601
 Longitude: 22.987
+
+Info:
+Dance 1
+
+Dance 2
+
+etc
+
+## Neohorouda
+Greek: Νεοχωρούδα
+Latitude: 40.738
+Longitude: 22.876
 
 Info:
 Dance 1
@@ -147,6 +171,8 @@ Color: #fe843d
 Greek: Αριδαία
 Latitude: 40.976
 Longitude: 22.061
+Subregion: Almopia
+Greek subregion: Αλμωπία
 
 Info:
 Gaida
@@ -170,36 +196,12 @@ Greek info:
 
 Μπούκιτε Ραζβίβατ
 
-## Edessa
-Greek: Έδεσσα
-Latitude: 40.801
-Longitude: 22.05
-
-Info:
-Pousnitsa
-
-Greek info:
-Πουσνίτσα
-
-## Episkopi
-Greek: Επισκοπή
-Latitude: 40.68769
-Longitude: 22.13735
-
-Info:
-Baiduskino
-
-Patrounino
-
-Greek info:
-Μπαϊντούσκινο
-
-Πατρούνινο
-
 ## Promarhoi
 Greek: Πρόμαχοι
 Latitude: 41.025
 Longitude: 22.004
+Subregion: Almopia
+Greek subregion: Αλμωπία
 
 Info:
 Marena
@@ -211,6 +213,8 @@ Greek info:
 Greek: Όρμα
 Latitude: 40.952
 Longitude: 21.926
+Subregion: Almopia
+Greek subregion: Αλμωπία
 
 Info:
 Dance 1
@@ -219,10 +223,53 @@ Dance 2
 
 etc
 
+## Garefi
+Greek: Γαρέφι
+Latitude: 41.032
+Longitude: 22.044
+Subregion: Almopia
+Greek subregion: Αλμωπία
+
+Info:
+Dance 1
+
+Dance 2
+
+etc
+
+## Eksaplatanos
+Greek: Εξαπλάτανος
+Latitude: 40.978
+Longitude: 22.130
+Subregion: Almopia
+Greek subregion: Αλμωπία
+
+Info:
+Dance 1
+
+Dance 2
+
+etc
+
+## Edessa
+Greek: Έδεσσα
+Latitude: 40.801
+Longitude: 22.05
+Subregion: Edessa
+Greek subregion: Έδεσσα
+
+Info:
+Pousnitsa
+
+Greek info:
+Πουσνίτσα
+
 ## Karydia
 Greek: Καρυδιά
 Latitude: 40.848
 Longitude: 21.955
+Subregion: Edessa
+Greek subregion: Έδεσσα
 
 Info:
 Dance 1
@@ -235,12 +282,115 @@ etc
 Greek: Άρνισσα
 Latitude: 40.798
 Longitude: 21.835
+Subregion: Edessa
+Greek subregion: Έδεσσα
 
 Info:
 Poustseno
 
 Greek info:
 Πουστσένο
+
+## Skydra
+Greek: Σκύδρα
+Latitude: 40.767
+Longitude: 22.151
+Subregion: Edessa
+Greek subregion: Έδεσσα
+
+Info:
+Dance 1
+
+Dance 2
+
+etc
+
+## Mesimeri
+Greek: Μεσημέρι
+Latitude: 40.793
+Longitude: 22.026
+Subregion: Edessa
+Greek subregion: Έδεσσα
+
+Info:
+Dance 1
+
+Dance 2
+
+etc
+
+## Kerasia
+Greek: Κερασιές
+Latitude: 40.877
+Longitude: 21.963
+Subregion: Edessa
+Greek subregion: Έδεσσα
+
+Info:
+Dance 1
+
+Dance 2
+
+etc
+
+## Yiannitsa
+Greek: Γιαννιτσά
+Latitude: 40.796
+Longitude: 22.414
+Subregion: Giannitsa
+Greek subregion: Γιαννιτσά
+
+Info:
+Dance 1
+
+Dance 2
+
+etc
+
+## Ampellies
+Greek: Αμπελείες
+Latitude: 40.834
+Longitude: 22.387
+Subregion: Giannitsa
+Greek subregion: Γιαννιτσά
+
+Info:
+Dance 1
+
+Dance 2
+
+etc
+
+## Episkopi
+Greek: Επισκοπή
+Latitude: 40.68769
+Longitude: 22.13735
+Subregion: Giannitsa
+Greek subregion: Γιαννιτσά
+
+Info:
+Baiduskino
+
+Patrounino
+
+Greek info:
+Μπαϊντούσκινο
+
+Πατρούνινο
+
+## Aghia Marina
+Greek: Αγία Μαρίνα
+Latitude: 40.598
+Longitude: 22.215
+Subregion: Giannitsa
+Greek subregion: Γιαννιτσά
+
+Info:
+Dance 1
+
+Dance 2
+
+etc
 
 # Macedonia, Central
 Greek: Μακεδονία, Κεντρική
@@ -521,10 +671,144 @@ Color: #46acfc
 Greek: Ιόνια Νησιά
 Color: #5b83f8
 
-## Kefallonia
-Greek: Κεφαλονιά
-Latitude: 38.266
-Longitude: 20.537
+## Divarata
+Greek: Διβαράτα
+Latitude: 38.331
+Longitude: 20.550
+Subregion: Kefallonia
+Greek subregion: Κεφαλονιά
+
+Info:
+Divaratikos
+
+Ballos
+
+Mermingas
+
+Manettas
+
+Barbounaki
+
+Vlahopoules
+
+Greek info:
+Διβαράτικος
+
+Μπάλος
+
+Μέρμηγκας
+
+Μανέτας
+
+Μπαρμπουνάκι
+
+Βλαχοπούλες
+
+## Dilinata
+Greek: Διλινάτα
+Latitude: 38.225
+Longitude: 20.516
+Subregion: Kefallonia
+Greek subregion: Κεφαλονιά
+
+Info:
+Divaratikos
+
+Ballos
+
+Mermingas
+
+Manettas
+
+Barbounaki
+
+Vlahopoules
+
+Greek info:
+Διβαράτικος
+
+Μπάλος
+
+Μέρμηγκας
+
+Μανέτας
+
+Μπαρμπουνάκι
+
+Βλαχοπούλες
+
+## Pylaros
+Greek: Πύλαρος
+Latitude: 38.317
+Longitude: 20.567
+Subregion: Kefallonia
+Greek subregion: Κεφαλονιά
+
+Info:
+Divaratikos
+
+Ballos
+
+Mermingas
+
+Manettas
+
+Barbounaki
+
+Vlahopoules
+
+Greek info:
+Διβαράτικος
+
+Μπάλος
+
+Μέρμηγκας
+
+Μανέτας
+
+Μπαρμπουνάκι
+
+Βλαχοπούλες
+
+## Omala
+Greek: Ομαλά
+Latitude: 38.167
+Longitude: 20.600
+Subregion: Kefallonia
+Greek subregion: Κεφαλονιά
+
+Info:
+Divaratikos
+
+Ballos
+
+Mermingas
+
+Manettas
+
+Barbounaki
+
+Vlahopoules
+
+Greek info:
+Διβαράτικος
+
+Μπάλος
+
+Μέρμηγκας
+
+Μανέτας
+
+Μπαρμπουνάκι
+
+Βλαχοπούλες
+
+## Kaminarata
+Greek: Καμιναράτα
+Latitude: 38.223
+Longitude: 20.378
+Subregion: Kefallonia
+Greek subregion: Κεφαλονιά
 
 Info:
 Divaratikos
