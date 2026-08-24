@@ -185,6 +185,38 @@ Rude Giagne
 
 Bukit Resivat
 
+Patrounino (Patroula, Patrona)
+
+Baidouskino Almopia
+
+Baidouskino-Sarakina
+
+Patrounino (again)
+
+Tikfeskino
+
+Tritepati
+
+Gaeda
+
+Souleimanovo (Molaevo )
+
+Gaeda
+
+Tritepati
+
+Gaida (Kythina)
+
+Molaevo
+
+Syrtos
+
+Syrtos sta dyo
+
+Pous(i)nitsa
+
+Hasapia (Ramna)
+
 Greek info:
 Γκάιντα
 
@@ -217,11 +249,17 @@ Subregion: Almopia
 Greek subregion: Αλμωπία
 
 Info:
-Dance 1
+Ramna (Pravo)
 
-Dance 2
+Tikfeskino
 
-etc
+Patrounino
+
+Baedouskino
+
+Tritepati (Zavlitsena)
+
+Moulaevo
 
 ## Garefi
 Greek: Γαρέφι
@@ -272,11 +310,13 @@ Subregion: Edessa
 Greek subregion: Έδεσσα
 
 Info:
-Dance 1
+Marena
 
-Dance 2
+Bukite Resivite
 
-etc
+Patrounino
+
+Yadziska
 
 ## Arnissa
 Greek: Άρνισσα
@@ -287,6 +327,8 @@ Greek subregion: Έδεσσα
 
 Info:
 Poustseno
+
+Natri
 
 Greek info:
 Πουστσένο
@@ -372,6 +414,16 @@ Info:
 Baiduskino
 
 Patrounino
+
+Syrtos
+
+Roudo Giagne
+
+Hasapia/Ramna/Zaramo
+
+Hasaposerviko
+
+Syre-Syre
 
 Greek info:
 Μπαϊντούσκινο
