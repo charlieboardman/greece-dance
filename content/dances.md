@@ -407,8 +407,8 @@ etc
 Greek: Επισκοπή
 Latitude: 40.68769
 Longitude: 22.13735
-Subregion: Giannitsa
-Greek subregion: Γιαννιτσά
+Subregion: Episkopi
+Greek subregion: Επισκοπή
 
 Info:
 Baiduskino
@@ -434,8 +434,8 @@ Greek info:
 Greek: Αγία Μαρίνα
 Latitude: 40.598
 Longitude: 22.215
-Subregion: Giannitsa
-Greek subregion: Γιαννιτσά
+Subregion: Episkopi
+Greek subregion: Επισκοπή
 
 Info:
 Dance 1
@@ -579,6 +579,18 @@ Color: #fa5cfe
 Greek: Θεσσαλία
 Color: #2dbe01
 
+## Karditsa
+Greek: Καρδίτσα
+Latitude: 39.365
+Longitude: 21.924
+
+Info:
+Dance 1
+
+Dance 2
+
+etc
+
 ## Sofades
 Greek: Σοφάδες
 Latitude: 39.338
@@ -599,11 +611,165 @@ Subregion: Agrafa
 Greek subregion: Άγραφα
 
 Info:
-Dance 1
+Tsamiko
 
-Dance 2
+Sta Tria
 
-etc
+Kalamatiano
+
+Kleistos
+
+Diplos Horos
+
+## Aidonochori
+Greek: Αηδονοχώρι
+Latitude: 39.094
+Longitude: 21.970
+Subregion: Agrafa
+Greek subregion: Άγραφα
+
+Info:
+Tsamiko
+
+Sta Tria
+
+Kalamatiano
+
+Kleistos
+
+Diplos Horos
+
+Zavale
+
+Tai Tai
+
+## Smokovo
+Greek: Σμόκοβο
+Latitude: 39.129
+Longitude: 22.011
+Subregion: Agrafa
+Greek subregion: Άγραφα
+
+Info:
+Tsamiko
+
+Sta Tria
+
+Kalamatiano
+
+Kleistos
+
+Diplos Horos
+
+## Katafygi
+Greek: Καταφύγι
+Latitude: 39.251
+Longitude: 21.830
+Subregion: Agrafa
+Greek subregion: Άγραφα
+
+Info:
+Tsamiko
+
+Sta Tria
+
+Kalamatiano
+
+Kleistos
+
+Diplos Horos
+
+Θ’λυκωτος Κλειστος
+
+## Laspi
+Greek: Λάσπη
+Latitude: 38.895
+Longitude: 21.865
+Subregion: Agrafa
+Greek subregion: Άγραφα
+
+Info:
+Tsamiko
+
+Sta Tria
+
+Kalamatiano
+
+Kleistos
+
+Diplos Horos
+
+## Vathylakkos
+Greek: Βαθύλακκος
+Latitude: 39.130
+Longitude: 21.952
+Subregion: Agrafa
+Greek subregion: Άγραφα
+
+Info:
+Tsamiko
+
+Sta Tria
+
+Kalamatiano
+
+Kleistos
+
+Diplos Horos
+
+## Amarantos
+Greek: Αμάραντος
+Latitude: 39.211
+Longitude: 21.860
+Subregion: Agrafa
+Greek subregion: Άγραφα
+
+Info:
+Tsamiko
+
+Sta Tria
+
+Kalamatiano
+
+Kleistos
+
+Diplos Horos
+
+## Morfovouni
+Greek: Μορφοβούνι
+Latitude: 39.352
+Longitude: 21.751
+Subregion: Agrafa
+Greek subregion: Άγραφα
+
+Info:
+Tsamiko
+
+Sta Tria
+
+Kalamatiano
+
+Kleistos
+
+Diplos Horos
+
+## Petrilo
+Greek: Πετρίλο
+Latitude: 39.271
+Longitude: 21.597
+Subregion: Agrafa
+Greek subregion: Άγραφα
+
+Info:
+Tsamiko
+
+Sta Tria
+
+Kalamatiano
+
+Kleistos
+
+Diplos Horos
 
 ## Krioneri
 Greek: Κρυονέρι
@@ -613,11 +779,15 @@ Subregion: Agrafa
 Greek subregion: Άγραφα
 
 Info:
-Dance 1
+Tsamiko
 
-Dance 2
+Sta Tria
 
-etc
+Kalamatiano
+
+Kleistos
+
+Diplos Horos
 
 ## Thrapsimi
 Greek: Θραψίμι
@@ -627,11 +797,19 @@ Subregion: Agrafa
 Greek subregion: Άγραφα
 
 Info:
-Dance 1
+Tsamiko
 
-Dance 2
+Sta Tria
 
-etc
+Kalamatiano
+
+Kleistos
+
+Diplos Horos
+
+Θλυκωτος Πηδηχτος
+
+Θλικοτος Συνκαθιστος
 
 # Pieria <!-- Mt Olympus area -->
 Greek: Πιερία
