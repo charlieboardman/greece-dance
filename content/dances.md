@@ -507,6 +507,18 @@ Dance 2
 
 etc
 
+## Polipotamo
+Greek: Πολυπόταμο
+Latitude: 40.7175
+Longitude: 21.3656
+
+Info:
+Dance 1
+
+Dance 2
+
+etc
+
 ## Kastoria
 Greek: Καστοριά
 Latitude: 40.522
