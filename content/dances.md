@@ -823,7 +823,7 @@ Diplos Horos
 
 Θλικοτος Συνκαθιστος
 
-# Pieria <!-- Mt Olympus area -->
+# Pieria
 Greek: Πιερία
 Color: #e887b5
 
@@ -904,6 +904,102 @@ Color: #148a53
 # Sarakatsani
 Greek: Σαρακατσάνοι
 Color: #c9237d
+
+## Gyftokampos (Sarakatsaniki Stani Museum)
+Greek: Γυφτόκαμπος
+Latitude: 39.9167°
+Longitude: 20.8500
+
+Info:
+Dance 1
+
+Dance 2
+
+etc
+
+## Ioannina (Urban Cultural Base)
+Greek: Ιωάννινα
+Latitude: 39.6650
+Longitude: 20.8537
+
+Info:
+Dance 1
+
+Dance 2
+
+etc
+
+## Pertouli Meadows (Panhellenic Gathering Grounds)
+Greek: Λιβάδια Περτουλίου
+Latitude: 39.5454
+Longitude: 21.4735
+
+Info:
+Dance 1
+
+Dance 2
+
+etc
+
+## Larissa (Wintering Plain Hub)
+Greek: Λάρισα
+Latitude: 39.6390
+Longitude: 22.4191
+
+Info:
+Dance 1
+
+Dance 2
+
+etc
+
+## Serres (Sarakatsani Folklore Museum)
+Greek: Σέρρες 
+Latitude: 41.08330
+Longitude: 23.5500
+
+Info:
+Dance 1
+
+Dance 2
+
+etc
+
+## Paranesti, Drama (Rhodope Mountain Base)
+Greek: Παρανέστι Δράμας
+Latitude: 41.2670
+Longitude: 24.5000
+
+Info:
+Dance 1
+
+Dance 2
+
+etc
+
+## Alexandroupoli , Drama  (Urban & Coastal Hub)
+Greek: Αλεξανδρούπολη
+Latitude: 40.8458
+Longitude: 25.8739
+
+Info:
+Dance 1
+
+Dance 2
+
+etc
+
+## Κομοτηνή (Rhodope Mountain Base)
+Greek: Βροντού
+Latitude: 41.1192
+Longitude: 25.4051
+
+Info:
+Dance 1
+
+Dance 2
+
+etc
 
 # Evia
 Greek: Εύβοια
