@@ -905,9 +905,9 @@ Color: #148a53
 Greek: Σαρακατσάνοι
 Color: #c9237d
 
-## Gyftokampos (Sarakatsaniki Stani Museum)
+## Gyftokampos <!-- Sarakatsaniki Stani Museumb -->
 Greek: Γυφτόκαμπος
-Latitude: 39.9167°
+Latitude: 39.9167
 Longitude: 20.8500
 
 Info:
@@ -917,7 +917,7 @@ Dance 2
 
 etc
 
-## Ioannina (Urban Cultural Base)
+## Ioannina <!-- Urban Cultural Baseb -->
 Greek: Ιωάννινα
 Latitude: 39.6650
 Longitude: 20.8537
@@ -929,7 +929,7 @@ Dance 2
 
 etc
 
-## Pertouli Meadows (Panhellenic Gathering Grounds)
+## Pertouli Meadows <!-- Panhellenic Gathering Groundsb -->
 Greek: Λιβάδια Περτουλίου
 Latitude: 39.5454
 Longitude: 21.4735
@@ -941,7 +941,7 @@ Dance 2
 
 etc
 
-## Larissa (Wintering Plain Hub)
+## Larissa <!-- Wintering Plain Hub -->
 Greek: Λάρισα
 Latitude: 39.6390
 Longitude: 22.4191
@@ -953,7 +953,7 @@ Dance 2
 
 etc
 
-## Serres (Sarakatsani Folklore Museum)
+## Serres <!-- Sarakatsani Folklore Museu -->
 Greek: Σέρρες 
 Latitude: 41.08330
 Longitude: 23.5500
@@ -965,7 +965,7 @@ Dance 2
 
 etc
 
-## Paranesti, Drama (Rhodope Mountain Base)
+## Paranesti, Drama <!-- Rhodope Mountain Base -->
 Greek: Παρανέστι Δράμας
 Latitude: 41.2670
 Longitude: 24.5000
@@ -977,7 +977,7 @@ Dance 2
 
 etc
 
-## Alexandroupoli , Drama  (Urban & Coastal Hub)
+## Alexandroupoli <!-- Drama -->
 Greek: Αλεξανδρούπολη
 Latitude: 40.8458
 Longitude: 25.8739
@@ -989,7 +989,7 @@ Dance 2
 
 etc
 
-## Κομοτηνή (Rhodope Mountain Base)
+## Κομοτηνή <!-- Rhodope Mountain Base -->
 Greek: Βροντού
 Latitude: 41.1192
 Longitude: 25.4051
