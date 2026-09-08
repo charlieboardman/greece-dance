@@ -47,8 +47,9 @@ service hooks. `npm run smoke` checks the actual app and map byte-range serving.
 
 [Deployment infrastructure and instructions](deploy/README.md) are included for
 a future DigitalOcean droplet: Nginx, a Node systemd service, a five-minute update
-timer, staged releases, health checks and rollback. Nothing has been provisioned
-or deployed to DigitalOcean by this migration.
+timer, staged releases, health checks and rollback. On the droplet, `sudo ./setup.sh`
+installs that infrastructure and records the GitHub App key for the editor.
+Nothing has been provisioned or deployed to DigitalOcean by this migration.
 
 ## Region color palette
 

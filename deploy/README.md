@@ -36,6 +36,12 @@ droplet. Permit SSH and HTTP/HTTPS; Node listens only on loopback.
 From a reviewed checkout after this migration is merged:
 
 ```bash
+sudo ./setup.sh
+```
+
+`setup.sh` runs `deploy/install.sh`, then asks for the GitHub App values. To install infrastructure only:
+
+```bash
 sudo bash deploy/install.sh
 ```
 
@@ -67,25 +73,23 @@ obtain that certificate.
 
 ## Enable the password-protected editor
 
-Create a GitHub App, install it **only on this repository**, and grant repository
-**Contents: read/write** and **Pull requests: read/write**. Metadata read access
-is implicit. Webhooks and user authorization callbacks are not needed. Generate
-a private key and record the App ID and installation ID.
-
-Generate the password hash with `npm run password:hash`. Generate a session
-secret with:
+GitHub has no API for creating this login from a script. `./setup.sh` prints
+two URLs. Open them in a browser on your laptop (you can stay SSH’d into the
+droplet), create the App, install it only on this repository, then `scp` the
+downloaded `.pem` onto the droplet. The script stores that key, the App ID,
+installation ID, password hash and session secret in `/etc/greece-dance`.
+Webhooks are not used. Permissions: **Contents: read/write** and **Pull
+requests: read/write**.
 
 ```bash
-node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
+sudo ./setup.sh
 ```
 
-Set the hash, secret, app/installation IDs, repository, and key path in
-`/etc/greece-dance/app.env`. Install the key as root with group `greece-dance`
-and mode `0640`; keep `app.env` at the same ownership/mode. Set
-`EDITOR_ENABLED=true` and restart `greece-dance.service`. Open `/editor/` over
-HTTPS. Sessions expire after eight hours of inactivity and are cleared on
-service restart. Form input stays on the page when a session expires so the
-editor can log in again without discarding it.
+Keep `EDITOR_ENABLED=false` until HTTPS works, then `sudo ./setup.sh --enable-editor`
+and restart `greece-dance.service`. Open `/editor/` over HTTPS. Sessions expire
+after eight hours of inactivity and are cleared on service restart. Form input
+stays on the page when a session expires so the editor can log in again without
+discarding it.
 
 The app reads current `main` from GitHub, independently of the deployed version.
 It pushes an `editor/<submission-id>` branch and opens a PR. Repository rules
