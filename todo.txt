@@ -1,0 +1,3 @@
+Configure the GitHub App credentials for the web editor on the future droplet.
+Use SSH for the GitHub repository connection; keep the private key outside the
+repository and configure its path through the deployment environment.

@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Edit the dance archive</title>
+  <link rel="stylesheet" href="/editor/styles.css">
+  <script src="/vendor/marked.umd.js" defer></script>
+  <script src="/vendor/purify.min.js" defer></script>
+  <script src="/editor/app.js" type="module"></script>
+</head>
+<body>
+  <header><a href="/">← Back to the map</a><h1>Edit the dance archive</h1><button id="logout" hidden>Log out</button></header>
+  <p class="intro">Propose additions and corrections to the archive. Changes go live after review and publication.</p>
+  <div id="status" role="status" aria-live="polite"></div>
+  <form id="login" class="card" hidden>
+    <h2>Editor login</h2>
+    <label>Password<input name="password" type="password" autocomplete="current-password" required></label>
+    <button type="submit">Log in</button>
+  </form>
+  <main id="workspace" hidden>
+    <aside class="card">
+      <h2>Archive</h2>
+      <label>Find a place<input id="search" type="search" placeholder="English or Greek name"></label>
+      <label>Choose a record<select id="records" size="16" aria-label="Archive records"></select></label>
+      <div class="actions"><button id="new-region">Add region</button><button id="new-subregion">Add subregion</button><button id="new-village">Add village</button></div>
+      <button id="refresh" class="secondary">Refresh archive (keep draft)</button>
+    </aside>
+    <section class="card">
+      <form id="edit" hidden>
+        <h2 id="heading">Edit record</h2>
+        <p id="record-path" class="muted"></p>
+        <div id="creation" hidden>
+          <label id="parent-label">Parent<select id="parent"></select></label>
+          <label>Folder slug<input id="slug" pattern="[a-z0-9]+(-[a-z0-9]+)*" placeholder="argithea"><small>Lowercase letters, numbers, and hyphens. This stays fixed when a display name changes.</small></label>
+        </div>
+        <div class="pair">
+          <label>English name<input id="name-en" required maxlength="200"></label>
+          <label>Greek name<input id="name-el" required maxlength="200" lang="el"></label>
+        </div>
+        <label id="color-label" hidden>Region color<input id="color" type="color" value="#336699"></label>
+        <div id="village-fields" hidden>
+          <div class="pair">
+            <label>Latitude<input id="latitude" type="number" min="-90" max="90" step="any"></label>
+            <label>Longitude<input id="longitude" type="number" min="-180" max="180" step="any"></label>
+          </div>
+          <label>English info<textarea id="info-en" rows="12" placeholder="Dance information and research notes in Markdown"></textarea></label>
+          <label>Greek info <small>Optional; falls back to English.</small><textarea id="info-el" rows="12" lang="el"></textarea></label>
+          <details><summary>Read the formatted info</summary><div class="pair"><article><h3>English</h3><div id="render-en"></div></article><article><h3>Greek</h3><div id="render-el" lang="el"></div></article></div></details>
+        </div>
+        <label id="delete-label" class="check" hidden><input id="delete" type="checkbox"> Delete this record. Regions and subregions must be empty.</label>
+        <button type="submit">Preview changes</button>
+      </form>
+      <p id="empty">Choose a record, or add a region, subregion, or village.</p>
+      <section id="preview" hidden>
+        <h2>Review your changes</h2>
+        <div id="changes"></div>
+        <button id="submit">Submit pull request</button>
+      </section>
+    </section>
+  </main>
+</body>
+</html>

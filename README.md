@@ -1,50 +1,54 @@
-# National Ministry of Greek Folk Dance Research Map
+# Greek Folk Dance Research Map
 
-The National Ministry of Greek Folk Dance Research Map is a completely static
-website. The repository contains the whole application and requires no build or
-deployment service.
+An interactive bilingual atlas with a folder-based research archive and a
+password-protected editor that proposes changes through GitHub pull requests.
+The map uses MapLibre, bundled relief basemaps, and an OpenStreetMap boundary view.
 
-- [`content/dances.md`](content/dances.md) is the canonical content source.
-- The browser reads and validates that file directly on every page load. Content
-  changes need no build step and no GitHub Action.
-- The browser renders localized village labels from the Markdown as an
-  interactive map overlay.
-- The map selector offers SRTM land relief, ETOPO land-and-sea relief, and a
-  live OpenStreetMap boundary view. The two relief maps are committed locally.
+## Run locally
 
-The published app is:
-<https://charlieboardman.github.io/greece-dance/>
-
-## Editing content
-
-Edit [`content/dances.md` on GitHub](https://github.com/charlieboardman/charlieboardman.github.io/edit/main/greece-dance/content/dances.md),
-commit it and refresh the site. Regions and villages use English Markdown
-headings plus Greek names and other fields beneath them. The complete format
-and editing guide are in [`content/README.md`](content/README.md).
-
-## Previewing locally
-
-Requirements: Python 3 for the included byte-range-capable local web server,
-plus Node.js 20 or newer and npm for the test command and npm shortcuts.
+Use Node.js 24 LTS and npm:
 
 ```bash
+npm ci
+cp .env.example .env
 npm run dev
 ```
 
-Then open <http://localhost:8000/>. A local web server is required because
-browsers do not allow the page to `fetch()` its content from a `file:` URL.
+Open <http://localhost:8000/>. The map works immediately with the editor disabled.
+Local content edits appear after refreshing the map. The editor lives at
+`/editor/`; enabling it requires a password hash, session secret, and a GitHub
+App installed on the target repository. See [deployment setup](deploy/README.md).
+If enabled locally, submissions create real proposal branches and PRs in the
+configured repository. Automated tests use temporary local remotes instead.
 
-## Testing
+## Content and editing
 
-The tests validate the content grammar and presentation helpers without
-freezing the current number of regions or villages:
+[`info/`](info/) is the canonical content directory. Region and village JSON
+store names and metadata; optional subregion folders end in ` (subregion)`;
+village `info.en.md` and `info.el.md` contain the dances and research notes.
+Read the [complete folder schema and editing guide](content/README.md).
+
+Both direct file edits and web editor submissions meet in GitHub. `main` is the
+canonical accepted version; unmerged PRs are proposals. The web editor never
+modifies the deployed app or automatically merges its PRs.
 
 ```bash
+npm run validate
 npm test
+npm run smoke
 ```
 
-There is no GitHub Action or deployment build. GitHub Pages serves the committed
-HTML, JavaScript, Markdown and map textures exactly as they are.
+Tests cover the legacy migration, folder schema, authenticated editor API,
+content-only Git proposals, conflicting edits, partial-failure retries, and
+release/rollback behavior. Deployment tests use local fixture repositories and
+service hooks. `npm run smoke` checks the actual app and map byte-range serving.
+
+## Deployment
+
+[Deployment infrastructure and instructions](deploy/README.md) are included for
+a future DigitalOcean droplet: Nginx, a Node systemd service, a five-minute update
+timer, staged releases, health checks and rollback. Nothing has been provisioned
+or deployed to DigitalOcean by this migration.
 
 ## Region color palette
 
@@ -63,7 +67,7 @@ Candidates must:
 A multi-start farthest-point search chooses the candidate whose nearest
 existing palette color is farthest away in OKLab at each step. The resulting
 colors are converted to hex and stored explicitly in
-[`content/dances.md`](content/dances.md), so a region never changes color just
+each region’s `region.json`, so a region never changes color just
 because content was added or reordered. The current colors were assigned to
 minimize their total perceptual shift from the previous palette.
 
@@ -75,21 +79,23 @@ valuable than a small global improvement after each edit.
 ## Project structure
 
 ```text
-index.html                  Static application
-app.js                      Browser UI and map
-map-styles.js               Terrain, land-and-sea, and boundary map styles
-dances-markdown.js          dances.md validation and hierarchy parser
-region-presentation.js      Localized names and region sorting
-content/dances.md           Canonical content source
-content/README.md           Markdown editing guide
-assets/basemaps/            Static SRTM and ETOPO maps with source notes
-scripts/                    One-off basemap preparation tools
-tests/                      Content/parser tests
-vendor/                     Browser libraries and their licenses
+info/                       Canonical region/subregion/village content
+content/README.md           Schema and editing guide
+app.js, index.html          Public map
+editor/                     Password login, forms and change previews
+lib/                        Shared archive loader, validation and edit operations
+server/                     Express API, sessions, Git and GitHub App integration
+deploy/                     Droplet install, service, update and rollback tooling
+scripts/                    Validation, migration, smoke checks and basemap tools
+tests/                      Unit and integration tests; original Markdown fixture
+assets/basemaps/            Bundled SRTM and ETOPO relief maps
+vendor/                     Browser libraries and licenses
 ```
 
-NASA SRTM, NOAA ETOPO, and Natural Earth supply the public-domain relief-map
-data. OpenStreetMap supplies the live boundary view. MapLibre renders all three
-options, using the bundled PMTiles reader for SRTM; Marked renders village
-information sections, and DOMPurify sanitizes the resulting HTML. Library
-licenses are included in `vendor/`.
+The original master Markdown, including its source comments, is preserved in
+`tests/fixtures/legacy-dances.md` solely for migration testing. It is no longer
+served or used as live data.
+
+NASA SRTM, NOAA ETOPO, and Natural Earth supply the relief-map data.
+OpenStreetMap supplies the live boundary view. Marked renders village info,
+and DOMPurify sanitizes the resulting HTML. Library licenses are in `vendor/`.
