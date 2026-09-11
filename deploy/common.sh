@@ -25,9 +25,13 @@ healthcheck() {
   local expected="$1" response attempt
   for ((attempt=0; attempt<DEPLOY_HEALTH_ATTEMPTS; attempt++)); do
     if response=$(curl --silent --show-error --fail --max-time 2 "$DEPLOY_HEALTH_URL" 2>/dev/null) &&
-      printf '%s' "$response" | node -e '
-        let data=""; process.stdin.on("data", c => data += c);
-        process.stdin.on("end", () => { try { const value=JSON.parse(data); process.exit(value.ok === true && value.revision === process.argv[1] ? 0 : 1); } catch { process.exit(1); } });
+      printf '%s' "$response" | python3 -c '
+import json,sys
+try:
+    value=json.load(sys.stdin)
+    sys.exit(0 if value.get("ok") is True and value.get("revision") == sys.argv[1] else 1)
+except (ValueError, AttributeError):
+    sys.exit(1)
       ' "$expected"; then return 0; fi
     sleep 1
   done

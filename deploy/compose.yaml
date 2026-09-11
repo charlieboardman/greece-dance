@@ -1,0 +1,22 @@
+services:
+  app:
+    image: ${GREECE_DANCE_IMAGE:?Run setup or the deployment service first}
+    user: "${GREECE_DANCE_UID:?}:${GREECE_DANCE_GID:?}"
+    read_only: true
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    # Keep the existing loopback-only Nginx connection, including legacy rollback.
+    network_mode: host
+    # Node reads secrets inside the container; Compose never expands them into argv.
+    command: ["node", "--env-file=/etc/greece-dance/app.env", "server/index.js"]
+    environment:
+      HOST: 127.0.0.1
+      PORT: "${GREECE_DANCE_PORT:-8000}"
+    volumes:
+      - ${GREECE_DANCE_CONFIG_DIR:-/etc/greece-dance}:/etc/greece-dance:ro,Z
+      - ${GREECE_DANCE_STATE_DIR:-/var/lib/greece-dance-editor}:/var/lib/greece-dance-editor:rw,Z
+    tmpfs:
+      - /tmp:rw,nosuid,nodev,mode=1777
+    stop_grace_period: 15s

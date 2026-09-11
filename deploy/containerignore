@@ -1,0 +1,12 @@
+.git
+node_modules
+.env
+.env.*
+.state
+*.pem
+*.key
+**/*.pem
+**/*.key
+coverage
+test-results
+playwright-report

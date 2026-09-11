@@ -1,6 +1,6 @@
 import { createInterface } from "node:readline";
 import { Writable } from "node:stream";
-import { hashPassword } from "../server/auth.js";
+import { hashPassword } from "../server/password.js";
 
 let password;
 if (process.stdin.isTTY) {

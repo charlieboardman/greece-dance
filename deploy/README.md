@@ -1,149 +1,157 @@
-# Droplet deployment
+# Podman Compose deployment
 
-Runtime: Node.js 24 LTS behind Nginx on Ubuntu/Debian with systemd. Installation,
-update, health-check and rollback infrastructure is included. No DigitalOcean
-resources are created by this repository.
+The app runs in a read-only Podman container built from the
+[official Node.js 24 Debian image](https://hub.docker.com/_/node). Nginx and Certbot stay on the Ubuntu/Debian host. systemd manages
+`podman compose` at boot and restarts it if the app exits. The host needs neither
+Node.js nor npm. Setup installs Podman and its `podman-compose` provider.
 
-## Layout and separation
+## First setup or migration from the host-Node deployment
+
+From an up-to-date checkout on the droplet:
+
+```bash
+git pull --ff-only origin main
+sudo ./setup.sh --hostname 165-227-25-230.sslip.io
+```
+
+Use your own hostname or public IPv4 address. An IPv4 is automatically converted
+to a dashed sslip.io hostname; a purchased domain is optional. Allow inbound SSH,
+HTTP (80) and HTTPS (443) in any host or DigitalOcean firewall. If you use your own
+domain, point its DNS to the droplet before setup. Setup leaves firewall rules to
+the operator.
+
+Setup installs packages, pulls the Node 24 helper image, asks for GitHub App
+credentials and an editor password, builds/tests the app image, starts Compose,
+configures Nginx and HTTPS, verifies health, and enables the editor, certificate
+renewal and the five-minute update timer. Certbot asks for its account details and
+terms: enter an email or skip where offered; `c` cancels setup.
+
+The browser steps remain manual: create a GitHub App with **Contents: read/write**
+and **Pull requests: read/write**, disable webhooks, install it only on this
+repository, and transfer the downloaded private key to the droplet. Setup prints
+the instructions. The App ID is on the General settings page; the Installation
+ID is the number after `/installations/` in the installation URL. Password input
+and generated secrets never appear in command arguments.
+
+Rerun the same setup command after failure. Saved credentials, passwords, Nginx
+configuration and certificates are preserved. A previous host-Node release is
+built into a separate rollback image before switching to Compose; its original
+files are left untouched. The old host Node installation is no longer required
+and is left installed. The existing service names, editor state directory and
+credential paths remain the same. Expect a brief interruption when replacing the
+running service.
+
+The deployment remote/branch must already contain the application code you want
+to run. Defaults in `/etc/greece-dance/deploy.env` are this repository and `main`.
+For a private repository, configure a read-only SSH deploy key under the
+`greece-deploy` account and use its SSH remote there. That account only fetches
+Git objects; it has no Podman or restart privileges. `--repository` selects the
+editor's GitHub repository; configure `deploy.env` separately for a different
+deployment remote.
+
+Advanced options:
+
+- `--disable-editor`: complete HTTPS deployment but leave editing disabled.
+- `--skip-install`: configure credentials only, using the Node 24 helper
+  container; does not install packages, deploy, obtain HTTPS or restart services.
+- `--enable-editor`: enable editing; full setup verifies HTTPS first. With
+  `--skip-install`, HTTPS must already work and you must restart the app afterward.
+- `sudo bash deploy/install.sh`: install service definitions only; requires the
+  prerequisites already installed and does not start services.
+
+## Storage and credentials
 
 ```text
 /srv/greece-dance/
-  repository.git/         Deployment cache of GitHub
-  releases/<commit>/      Complete app, dependencies, content and .release-sha
-  current -> releases/<commit>
-  previous -> releases/<commit>
-/var/lib/greece-dance-editor/repository.git/  Separate editor Git object store
+  repository.git/                   Git deployment cache (greece-deploy)
+  releases/podman-<commit>/         Source snapshot, .release-sha, .container-image
+  releases/legacy-container-<sha>/  Migrated rollback image metadata
+  current -> releases/...
+  previous -> releases/...
+/var/lib/containers/storage/        Root's Podman images and containers
+/var/lib/greece-dance-editor/       Persistent editor Git workspace
 /etc/greece-dance/
-  app.env                Runtime settings, password hash and session secret
-  deploy.env             Canonical remote and deployment settings
-  github-app.pem         Private GitHub App key, when editor is enabled
-/usr/local/lib/greece-dance/deploy/          Administrator-owned scripts
+  app.env                          Runtime settings, password hash, session secret
+  deploy.env                       Canonical deployment remote and branch
+  github-app.pem                   GitHub App private key
+/usr/local/lib/greece-dance/deploy/ Administrator-managed scripts and compose.yaml
 ```
 
-The `greece-dance` service account can write only editor state and temporary
-files. It cannot modify releases. `greece-deploy` owns releases and can restart
-only `greece-dance.service` through a narrowly scoped sudoers rule. It cannot
-read editor credentials. Public repositories need no deployment credentials.
-For a private repository, configure a read-only SSH deploy key for
-`greece-deploy` and use an SSH remote in `deploy.env`.
+Builds use Git snapshots, explicit Containerfile COPY paths, and an ignore file.
+No credentials or editor state enter the image. Compose mounts `/etc/greece-dance`
+read-only; **Node reads `app.env` inside the container**. Compose does not expand
+secrets into Podman arguments or environment metadata. The app runs with the
+existing `greece-dance` UID/GID, no Linux capabilities, and a read-only root
+filesystem. Only editor state and temporary files are writable. No Podman socket
+or deployment directory is mounted. Compose uses host networking, with Node bound
+only to `127.0.0.1:8000`, preserving the existing Nginx connection and loopback proxy
+trust when migrating or rolling back older releases. Nginx is the single trusted
+proxy. The container shares the host network, but not its writable filesystem.
 
-## Guided first installation
+The editor independently reads `main`, creates content-only proposal branches and
+PRs, and never writes into the deployed image. Review and merge PRs in GitHub.
+Existing conflict detection and retry behavior are unchanged. Protect `main`
+with repository review/validation rules. Sessions are cleared on container restart;
+the editor Git workspace persists.
 
-On an Ubuntu/Debian droplet, clone this repository and run from the checkout:
+## Builds, updates and rollback
 
-```bash
-sudo ./setup.sh --hostname 165.227.25.230
-```
+The administrator-owned Containerfile uses `docker.io/library/node:24-bookworm-slim`.
+A build stage installs dependencies and runs validation, all tests and HTTP smoke
+checks under Node 24. The final image contains runtime dependencies, app and map
+assets, with Git available for the editor. Tests and build tools are omitted.
 
-Replace the example IP with your droplet's public IPv4 address, or supply a domain
-that already points to it. An IPv4 address is converted to a dashed `sslip.io`
-hostname automatically, so purchasing a domain is optional. This uses sslip.io's
-external DNS service. Permit inbound SSH, HTTP (80), and HTTPS (443), including in
-any DigitalOcean firewall. Setup does not modify firewall rules.
+The update service fetches the canonical branch and skips an unchanged commit
+whose image still exists. It builds before switching `current`, records the
+immutable image ID, restarts Compose, and checks `ok: true` plus the expected
+revision at `/api/health`. Failed builds leave the running release intact; failed
+startup/health checks restore the previous image. A lock serializes updates and
+rollback. The first fresh installation has no previous release.
 
-Full setup installs system packages, Node.js 24 at `/usr/bin/node` using
-NodeSource when needed, and npm dependencies before prompting for credentials.
-It installs the service definitions, stores GitHub App credentials and the editor
-password, deploys through the existing validated release mechanism, activates
-Nginx, runs Certbot, enables certificate renewal, verifies HTTPS, then enables the
-editor and automatic deployment timer. Certbot prompts for its account details
-and terms. The GitHub App creation/installation and transferring its downloaded
-key still require your browser and laptop; setup prints instructions.
-
-The canonical deployment remote and branch are in `/etc/greece-dance/deploy.env`
-(default `charlieboardman/greece-dance`, `main`). Merge the deployment/server code
-into that branch before running setup. For a private repository, first configure
-the read-only deployment SSH key described above. A custom `--repository` selects
-the editor's repository; also configure `deploy.env` for a custom deployment remote.
-
-Rerun the same command after a failure. Existing credentials and passwords are
-reused unless you request replacement; an existing Nginx symlink is accepted and
-matching certificates are retained. Failures before HTTPS verification leave the
-editor disabled and automatic deployment paused. Already deployed releases stay
-under the deployment system's control. Setup prints a diagnostic when deployment
-fails; inspect `journalctl -u greece-dance-update.service --no-pager -n 100`.
-
-For credentials-only administration without package installation or deployment:
-
-```bash
-sudo ./setup.sh --skip-install
-```
-
-This advanced mode requires Node.js 24 and installed checkout dependencies
-(`npm ci --omit=dev --ignore-scripts`). It does not configure HTTPS or restart
-services. For infrastructure-only installation, `sudo bash deploy/install.sh`
-remains available and requires preinstalled system prerequisites.
-
-## Enable the password-protected editor
-
-GitHub has no API for creating this login from a script. `./setup.sh` prints
-two URLs. Open them in a browser on your laptop (you can stay SSH’d into the
-droplet), create the App, install it only on this repository, then `scp` the
-downloaded `.pem` onto the droplet. The script stores that key, the App ID,
-installation ID, password hash and session secret in `/etc/greece-dance`.
-Webhooks are not used. Permissions: **Contents: read/write** and **Pull
-requests: read/write**.
-
-```bash
-sudo ./setup.sh
-```
-
-Full setup keeps `EDITOR_ENABLED=false` until HTTPS works, then enables the editor
-and restarts `greece-dance.service` automatically. Use `--disable-editor` to leave
-it disabled. Open `/editor/` over HTTPS. Sessions expire
-after eight hours of inactivity and are cleared on service restart. Form input
-stays on the page when a session expires so the editor can log in again without
-discarding it.
-
-The app reads current `main` from GitHub, independently of the deployed version.
-It pushes an `editor/<submission-id>` branch and opens a PR. Repository rules
-should require review/validation on `main`; allow the app to create proposal
-branches without granting it a bypass for `main`. The app does not merge PRs.
-Edits to the same record or its parent trigger a conflict; unrelated changes
-are retained automatically. A failed PR request after a successful push can
-be retried from the unchanged preview without another commit or PR. The branch
-also remains available in GitHub for manual recovery.
-
-## Updates and rollback
-
-The timer runs `update.sh` five minutes after the preceding run finishes. It
-fetches the canonical branch and skips an unchanged revision. New revisions
-are extracted to staging; `npm ci --omit=dev --ignore-scripts`, validation,
-tests and HTTP smoke checks must pass before replacing `current` and restarting
-Node. Health checks require `ok: true` and the expected commit SHA. Nginx proxies
-to Node so public files and data come from the same complete release.
-
-A backend restart can cause a brief interruption. Failed preparation leaves
-the live release alone. A failed restart/health check restores and restarts the
-previous release. The first deployment has no previous release to restore.
-An exclusive lock prevents concurrent deployments and rollbacks.
-
-Trigger a check manually:
+A Node base-image update alone does not trigger deployment. To refresh its patch
+version, pull `docker.io/library/node:24-bookworm-slim` with root's Podman and
+publish a new app commit so a new image is built. Images are retained locally for
+rollback; do not prune images used by `current` or `previous`. Old source snapshots
+and unreferenced images can be removed periodically to recover disk space.
 
 ```bash
 sudo systemctl start greece-dance-update.service
+sudo journalctl -u greece-dance-update.service -f
+sudo journalctl -u greece-dance.service -f
 ```
 
-For manual rollback, stop the timer so it cannot redeploy the unwanted commit.
-Let any in-progress update finish before running rollback:
+Manual rollback:
 
 ```bash
 sudo systemctl stop greece-dance-update.timer
-sudo -u greece-deploy /usr/local/lib/greece-dance/deploy/rollback.sh
+# Wait for any in-progress update to finish.
+sudo /usr/local/lib/greece-dance/deploy/rollback.sh
 ```
 
-Revert or fix the offending change in GitHub, then re-enable the timer. Rollback
-exchanges `current` and `previous`; run it again to restore the other version.
-Update refuses to overwrite the release retained by `previous`.
+Fix or revert the offending commit in GitHub before re-enabling the timer:
 
-Logs: `journalctl -u greece-dance.service` and
-`journalctl -u greece-dance-update.service`. `/api/health` reports the deployed
-revision. Historical release directories are retained; periodically remove old
-ones while keeping `current` and `previous`. Source/assets live in GitHub;
-back up `/etc/greece-dance` securely and retain editor state when moving servers.
-Never commit credentials or runtime state.
+```bash
+sudo systemctl enable --now greece-dance-update.timer
+```
 
-Installed scripts and service/Nginx definitions are administrator-managed:
-ordinary content deployments do not overwrite them. Re-run the installer from
-a reviewed checkout for infrastructure changes, then reload/restart relevant
-services. Existing environment files are preserved.
+Use `sudo podman ps` for container status. Installed scripts, Compose and systemd
+files are administrator-managed; content updates do not overwrite them. Rerun
+setup from the updated checkout for infrastructure changes. Securely back up
+`/etc/greece-dance` and retain `/var/lib/greece-dance-editor` when moving servers.
+
+## Local verification
+
+Use Node.js 24 for local development and `npm run validate && npm test`. Deployment
+unit tests use temporary local remotes and fake service/build hooks. To build and
+test a real image with rootless Podman and `podman-compose` installed:
+
+```bash
+podman build -f deploy/Containerfile --ignorefile deploy/containerignore \
+  --build-arg RELEASE_SHA=local-test -t localhost/greece-dance:test .
+node deploy/check-container.mjs localhost/greece-dance:test
+```
+
+The opt-in Compose check creates temporary credentials/state and an ephemeral local
+port. It checks Node 24, the map, byte ranges, an editor login through the proxy
+headers, a read-only app filesystem, and persistence after recreation. It never
+contacts GitHub or production infrastructure. Test resources are removed afterward.

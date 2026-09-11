@@ -31,7 +31,7 @@ fi
 # An unchanged release does not restart itself; apply settings on retries as well.
 systemctl restart greece-dance.service
 curl --fail --silent --show-error --retry 10 --retry-connrefused --retry-delay 1 http://127.0.0.1:8000/api/health |
-  node -e 'let s=""; process.stdin.on("data",c=>s+=c); process.stdin.on("end",()=>{if(JSON.parse(s).ok!==true) process.exit(1)})'
+  python3 -c 'import json,sys; sys.exit(0 if json.load(sys.stdin).get("ok") is True else 1)'
 if [[ -e "$nginx_enabled" || -L "$nginx_enabled" ]]; then
   [[ "$(readlink -f "$nginx_enabled")" == "$(readlink -f "$nginx_site")" ]] || { echo 'The enabled greece-dance Nginx site points elsewhere.' >&2; exit 1; }
 else
@@ -45,7 +45,7 @@ echo "Obtaining HTTPS for $hostname. DNS must point here and inbound ports 80 an
 certbot --nginx --redirect --keep-until-expiring -d "$hostname"
 systemctl enable --now certbot.timer
 curl --fail --silent --show-error --retry 5 --retry-delay 1 "https://$hostname/api/health" |
-  node -e 'let s=""; process.stdin.on("data",c=>s+=c); process.stdin.on("end",()=>{if(JSON.parse(s).ok!==true) process.exit(1)})'
+  python3 -c 'import json,sys; sys.exit(0 if json.load(sys.stdin).get("ok") is True else 1)'
 set_editor "$enable_editor"
 if ! systemctl restart greece-dance.service; then
   set_editor false
@@ -53,7 +53,7 @@ if ! systemctl restart greece-dance.service; then
   exit 1
 fi
 if ! curl --fail --silent --show-error --retry 10 --retry-connrefused --retry-delay 1 "https://$hostname/api/health" |
-  node -e 'let s=""; process.stdin.on("data",c=>s+=c); process.stdin.on("end",()=>{if(JSON.parse(s).ok!==true) process.exit(1)})'; then
+  python3 -c 'import json,sys; sys.exit(0 if json.load(sys.stdin).get("ok") is True else 1)'; then
   set_editor false
   systemctl restart greece-dance.service || true
   exit 1

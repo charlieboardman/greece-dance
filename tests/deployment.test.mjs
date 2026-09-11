@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, writeFile, readFile, readlink, rm, chmod, stat } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, readFile, readlink, rm, chmod, stat, cp, symlink } from "node:fs/promises";
 import path from "node:path";
 import os from "node:os";
 import { fileURLToPath } from "node:url";
@@ -35,6 +35,26 @@ test("deployment skips unchanged commits, retains live content on failure, and c
   await writeFile(path.join(clone, "scripts/validate.js"), 'if (require("fs").existsSync("invalid")) process.exit(1);\n');
   await writeFile(path.join(clone, "scripts/test.js"), 'console.log("fixture checks passed");\n');
   async function publish() { await git("add", "-A"); await git("commit", "-m", "Update fixture"); await git("push", "origin", "main"); return git("rev-parse", "HEAD"); }
+  // Podman is a local build hook here; real image tests run separately, without
+  // mounting credentials or invoking production services.
+  const bin = path.join(root, "bin");
+  await mkdir(bin);
+  const podman = path.join(bin, "podman");
+  await writeFile(podman, `#!/usr/bin/env bash
+set -eu
+if [[ "$1" == image ]]; then exit 0; fi
+[[ "$1" == build ]]
+output=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --iidfile) output=$2; shift 2 ;;
+    *) context=$1; shift ;;
+  esac
+done
+[[ ! -f "$context/invalid" ]]
+printf 'sha256:%064d\\n' 1 > "$output"
+`);
+  await chmod(podman, 0o755);
   const first = await publish();
   await mkdir(deploy);
   const hook = path.join(root, "restart");
@@ -47,13 +67,26 @@ test("deployment skips unchanged commits, retains live content on failure, and c
   health.listen(0, "127.0.0.1"); await once(health, "listening");
   t.after(() => new Promise((resolve) => { health.closeAllConnections(); health.close(resolve); }));
   const env = { ...process.env, DEPLOY_CONFIG: path.join(root, "absent.env"), DEPLOY_ROOT: deploy,
+    PATH: `${bin}:${process.env.PATH}`,
     DEPLOY_REPOSITORY: remote, DEPLOY_RESTART_HOOK: hook, DEPLOY_HEALTH_ATTEMPTS: "1",
     DEPLOY_HEALTH_URL: `http://127.0.0.1:${health.address().port}/api/health` };
   const update = fileURLToPath(new URL("../deploy/update.sh", import.meta.url));
   const rollback = fileURLToPath(new URL("../deploy/rollback.sh", import.meta.url));
-  let result = await run(update, env); assert.equal(result.code, 0, result.output);
-  assert.equal(await readlink(path.join(deploy, "current")), path.join(deploy, "releases", first));
-  assert.equal((await stat(path.join(deploy, "releases", first))).mode & 0o777, 0o755, "The separate runtime account can traverse the release directory.");
+  // A host-Node release must survive a failed migration unchanged.
+  const legacy = path.join(deploy, "releases", "host-release");
+  await cp(clone, legacy, { recursive: true });
+  await writeFile(path.join(legacy, ".release-sha"), first);
+  await writeFile(path.join(legacy, "invalid"), "fail legacy image build");
+  await symlink(legacy, path.join(deploy, "current"));
+  let result = await run(update, env);
+  assert.notEqual(result.code, 0);
+  assert.equal(await readlink(path.join(deploy, "current")), legacy);
+  await rm(path.join(legacy, "invalid"));
+  result = await run(update, env); assert.equal(result.code, 0, result.output);
+  await assert.rejects(readFile(path.join(legacy, ".container-image")), { code: "ENOENT" });
+  assert.equal(await readlink(path.join(deploy, "previous")), path.join(deploy, "releases", `legacy-container-${first}`));
+  assert.equal(await readlink(path.join(deploy, "current")), path.join(deploy, "releases", `podman-${first}`));
+  assert.equal((await stat(path.join(deploy, "releases", `podman-${first}`))).mode & 0o777, 0o755, "The separate runtime account can traverse the release directory.");
   result = await run(update, env); assert.equal(result.code, 0, result.output); assert.match(result.output, /Already deployed/u);
   assert.equal((await readFile(path.join(deploy, "restarts"), "utf8")).trim(), "restart");
   await writeFile(path.join(clone, "invalid"), "bad content"); await publish();
@@ -61,14 +94,14 @@ test("deployment skips unchanged commits, retains live content on failure, and c
   assert.equal((await readFile(path.join(deploy, "running-sha"), "utf8")).trim(), first);
   await rm(path.join(clone, "invalid")); await writeFile(path.join(clone, "fail-start"), "bad startup"); await publish();
   result = await run(update, env); assert.notEqual(result.code, 0, result.output); assert.match(result.output, /restoring the previous release/u);
-  assert.equal(await readlink(path.join(deploy, "current")), path.join(deploy, "releases", first));
+  assert.equal(await readlink(path.join(deploy, "current")), path.join(deploy, "releases", `podman-${first}`));
   await rm(path.join(clone, "fail-start")); await writeFile(path.join(clone, "wrong-health"), "wrong revision"); await publish();
   result = await run(update, env); assert.notEqual(result.code, 0, result.output);
   assert.equal((await readFile(path.join(deploy, "running-sha"), "utf8")).trim(), first);
   await rm(path.join(clone, "wrong-health")); await writeFile(path.join(clone, "notes"), "valid update"); const second = await publish();
   result = await run(update, env); assert.equal(result.code, 0, result.output);
   assert.equal((await readFile(path.join(deploy, "running-sha"), "utf8")).trim(), second);
-  assert.equal(await readlink(path.join(deploy, "previous")), path.join(deploy, "releases", first));
+  assert.equal(await readlink(path.join(deploy, "previous")), path.join(deploy, "releases", `podman-${first}`));
   result = await run(rollback, env); assert.equal(result.code, 0, result.output);
   assert.equal((await readFile(path.join(deploy, "running-sha"), "utf8")).trim(), first);
 });

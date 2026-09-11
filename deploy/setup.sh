@@ -67,15 +67,21 @@ if [[ "$skip_install" == false ]]; then
   bash "$source_directory/bootstrap.sh"
 fi
 
-node_bin=${NODE:-}
-if [[ -z "$node_bin" ]]; then
-  if [[ -x /usr/bin/node ]]; then node_bin=/usr/bin/node
-  else node_bin=$(command -v node); fi
-fi
-[[ -n "$node_bin" ]] || { echo 'Node.js is required to hash the editor password.' >&2; exit 1; }
-hasher="$repository_root/scripts/hash-password.js"
-if [[ ! -f "$hasher" ]]; then hasher=/srv/greece-dance/current/scripts/hash-password.js; fi
-[[ -f "$hasher" ]] || { echo 'Cannot find scripts/hash-password.js. Run this from a reviewed checkout.' >&2; exit 1; }
+# Node runs in a disposable container even for password setup. NODE is a local
+# test/development override; the droplet does not need host Node or npm.
+node_command() {
+  if [[ -n "${NODE:-}" ]]; then "$NODE" "$@"
+  else
+    podman run --rm -i --network=none --read-only --cap-drop=all \
+      --security-opt=no-new-privileges \
+      --volume "$repository_root/package.json:/work/package.json:ro,Z" \
+      --volume "$repository_root/scripts/hash-password.js:/work/scripts/hash-password.js:ro,Z" \
+      --volume "$repository_root/server/password.js:/work/server/password.js:ro,Z" \
+      --workdir /work docker.io/library/node:24-bookworm-slim node "$@"
+  fi
+}
+hasher=scripts/hash-password.js
+cd "$repository_root"
 
 if [[ "$skip_install" == false ]]; then
   bash "$source_directory/install.sh"
@@ -142,7 +148,7 @@ if [[ "$skip_install" == false && -z "$hostname" ]]; then
   exit 1
 fi
 if [[ "$hostname" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-  "$node_bin" --input-type=module -e 'import { isIP } from "node:net"; process.exit(isIP(process.argv[1]) === 4 ? 0 : 1)' "$hostname" || { echo 'Invalid IPv4 address.' >&2; exit 1; }
+  node_command --input-type=module -e 'import { isIP } from "node:net"; process.exit(isIP(process.argv[1]) === 4 ? 0 : 1)' "$hostname" || { echo 'Invalid IPv4 address.' >&2; exit 1; }
   hostname="${hostname//./-}.sslip.io"
 fi
 if [[ -n "$hostname" ]]; then
@@ -258,7 +264,7 @@ elif ! valid_hash "$current_hash"; then
   unset confirm
 fi
 if [[ -n "$password" ]]; then
-  hash=$(printf '%s' "$password" | "$node_bin" "$hasher")
+  hash=$(printf '%s' "$password" | node_command "$hasher")
   unset password
   upsert_env EDITOR_PASSWORD_HASH "$hash"
 fi
@@ -267,7 +273,7 @@ valid_hash "$(env_value EDITOR_PASSWORD_HASH)" || { echo 'Enter a nonempty edito
 
 current_secret=$(env_value SESSION_SECRET)
 if [[ ${#current_secret} -lt 32 ]]; then
-  upsert_env SESSION_SECRET "$("$node_bin" -e 'console.log(require("node:crypto").randomBytes(32).toString("hex"))')"
+  upsert_env SESSION_SECRET "$(node_command -e 'console.log(require("node:crypto").randomBytes(32).toString("hex"))')"
 fi
 
 if [[ "$skip_install" == false ]]; then

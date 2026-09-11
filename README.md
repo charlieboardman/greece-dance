@@ -46,9 +46,9 @@ service hooks. `npm run smoke` checks the actual app and map byte-range serving.
 ## Deployment
 
 [Deployment instructions](deploy/README.md) cover Ubuntu/Debian droplets. Run
-`sudo ./setup.sh --hostname YOUR_DOMAIN_OR_IPV4` from a checkout to install Node.js
-24 and dependencies, configure the GitHub App, deploy, set up HTTPS and renewal,
-and enable the editor and automatic updates. An IPv4 address uses sslip.io, so a
+`sudo ./setup.sh --hostname YOUR_DOMAIN_OR_IPV4` from a checkout to install
+Podman Compose, build a tested Node.js 24 app image, configure the GitHub App,
+set up HTTPS and renewal, and enable the editor and automatic updates. An IPv4 address uses sslip.io, so a
 purchased domain is optional. GitHub App creation and key transfer are guided
 manual steps. Existing credentials are reused when retrying.
 
