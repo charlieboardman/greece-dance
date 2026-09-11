@@ -21,6 +21,8 @@ set_editor() {
 trap 'echo "Setup stopped. Fix the reported error and rerun ./setup.sh; saved credentials will be reused." >&2' ERR
 systemctl stop greece-dance-update.timer
 set_editor false
+echo 'Deploying the latest release and running checks. This can take a few minutes.'
+echo 'To follow progress in another SSH session: journalctl -u greece-dance-update.service -f'
 if ! systemctl start greece-dance-update.service; then
   echo 'Deployment failed. Check: journalctl -u greece-dance-update.service --no-pager -n 100' >&2
   echo 'Check that deploy.env points to the repository and branch containing the server and deployment code.' >&2

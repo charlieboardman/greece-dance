@@ -1,6 +1,9 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { once } from "node:events";
+import { mkdtemp, cp, rm } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import { createApp } from "../server/app.js";
 import { hashPassword } from "../server/auth.js";
 
@@ -49,4 +52,20 @@ test("login attempts are rate limited", async (t) => {
   const init = { method: "POST", headers: { Origin: "http://editor.test", "Content-Type": "application/json" }, body: '{"password":"wrong"}' };
   assert.equal((await request("/api/editor/login", init)).status, 401);
   assert.equal((await request("/api/editor/login", init)).status, 429);
+});
+
+
+test("public files work inside hidden deployment staging directories", async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), ".staging-"));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  for (const name of ["info", "index.html", "app.js", "styles.css", "region-presentation.js", "map-styles.js"]) {
+    await cp(new URL(`../${name}`, import.meta.url), path.join(root, name), { recursive: true });
+  }
+  const { request } = await fixture(t, { editor: null, root });
+  for (const url of ["/", "/index.html", "/app.js", "/styles.css", "/region-presentation.js", "/map-styles.js"]) {
+    assert.equal((await request(url)).status, 200, url);
+  }
+  for (const url of ["/.env", "/.git/config", "/server/auth.js"]) {
+    assert.equal((await request(url)).status, 404, url);
+  }
 });

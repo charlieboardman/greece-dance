@@ -81,7 +81,7 @@ export async function createApp({ root = fileURLToPath(new URL("../", import.met
     app.use(`/${directory}`, express.static(path.join(root, directory), { dotfiles: "deny", index: false, maxAge: "1h" }));
   }
   for (const filename of ["index.html", "app.js", "styles.css", "region-presentation.js", "map-styles.js"]) {
-    app.get(filename === "index.html" ? ["/", "/index.html"] : `/${filename}`, (_req, res) => res.sendFile(path.join(root, filename)));
+    app.get(filename === "index.html" ? ["/", "/index.html"] : `/${filename}`, (_req, res) => res.sendFile(filename, { root, dotfiles: "deny" }));
   }
   app.use((_req, res) => res.status(404).json({ error: "Not found." }));
   app.use((error, _req, res, _next) => {
