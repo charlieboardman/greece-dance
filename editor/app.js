@@ -1,3 +1,5 @@
+import { newPlacePath, placeLabel } from "./places.js";
+
 const $ = (id) => document.getElementById(id);
 let csrf = "";
 let snapshot = null;
@@ -44,7 +46,7 @@ function fillParents() {
   $("parent").replaceChildren();
   for (const record of snapshot.records) {
     if (record.type === "region" || (current?.type === "village" && record.type === "subregion")) {
-      $("parent").append(new Option(record.path, record.path));
+      $("parent").append(new Option(placeLabel(record, snapshot.records), record.path));
     }
   }
   if ([...$("parent").options].some((option) => option.value === previous)) $("parent").value = previous;
@@ -58,10 +60,9 @@ function openRecord(record, creating = false) {
   $("edit").reset();
   $("edit").hidden = false; $("empty").hidden = true;
   $("heading").textContent = `${creating ? "Add" : "Edit"} ${record.type}`;
-  $("record-path").textContent = creating ? "" : `info/${record.path}/`;
   $("creation").hidden = !creating;
   $("parent-label").hidden = record.type === "region";
-  $("slug").required = creating;
+  $("parent-caption").textContent = record.type === "village" ? "Region or subregion" : "Region";
   $("color-label").hidden = record.type !== "region";
   $("village-fields").hidden = record.type !== "village";
   $("latitude").required = $("longitude").required = record.type === "village";
@@ -77,8 +78,7 @@ function openRecord(record, creating = false) {
 function changeFromForm() {
   let path = current.path;
   if (current.creating) {
-    const folder = $("slug").value + (current.type === "subregion" ? " (subregion)" : "");
-    path = current.type === "region" ? folder : `${$("parent").value}/${folder}`;
+    path = newPlacePath(current.type, $("name-en").value, $("parent").value, snapshot.records);
   }
   const action = current.creating ? "create" : $("delete").checked ? "delete" : "update";
   if (action === "delete") return { action, path };
@@ -101,7 +101,9 @@ function showChanges(changes) {
   $("changes").replaceChildren();
   for (const change of changes) {
     const details = document.createElement("details"); details.open = true;
-    const summary = document.createElement("summary"); summary.textContent = change.path;
+    const summary = document.createElement("summary"); const field = change.path.split("/").at(-1);
+    const label = field === "info.en.md" ? "English info" : field === "info.el.md" ? "Greek info" : "Details";
+    summary.textContent = `${$("name-en").value.trim()} · ${label}`;
     const pair = document.createElement("div"); pair.className = "pair";
     for (const [label, text] of [["Before", change.before], ["After", change.after]]) {
       const column = document.createElement("div");

@@ -29,10 +29,8 @@
     <section class="card">
       <form id="edit" hidden>
         <h2 id="heading">Edit record</h2>
-        <p id="record-path" class="muted"></p>
         <div id="creation" hidden>
-          <label id="parent-label">Parent<select id="parent"></select></label>
-          <label>Folder slug<input id="slug" pattern="[a-z0-9]+(-[a-z0-9]+)*" placeholder="argithea"><small>Lowercase letters, numbers, and hyphens. This stays fixed when a display name changes.</small></label>
+          <label id="parent-label"><span id="parent-caption">Region</span><select id="parent"></select></label>
         </div>
         <div class="pair">
           <label>English name<input id="name-en" required maxlength="200"></label>
