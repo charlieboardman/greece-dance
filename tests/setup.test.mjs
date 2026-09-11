@@ -92,3 +92,19 @@ test("setup.sh rejects a file that is not a private key", async (t) => {
   assert.notEqual(result.code, 0);
   assert.match(result.output, /private key/u);
 });
+
+test("setup accepts a droplet IPv4 and keeps GitHub App configuration", async (t) => {
+  const { etc, nginx, env, args } = await fixture(t);
+  const result = await run([...args, "--hostname", "165.227.25.230"], env);
+  assert.equal(result.code, 0, result.output);
+  assert.match(await readFile(path.join(etc, "app.env"), "utf8"), /^APP_ORIGIN=https:\/\/165-227-25-230\.sslip\.io$/mu);
+  assert.match(await readFile(nginx, "utf8"), /server_name 165-227-25-230\.sslip\.io;/u);
+  assert.match(await readFile(path.join(etc, "app.env"), "utf8"), /^GITHUB_APP_ID=42$/mu);
+});
+
+test("setup rejects invalid IPv4 addresses", async (t) => {
+  const { env, args } = await fixture(t);
+  const result = await run([...args, "--hostname", "999.227.25.230"], env);
+  assert.notEqual(result.code, 0);
+  assert.match(result.output, /Invalid IPv4/u);
+});

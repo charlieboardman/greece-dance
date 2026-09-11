@@ -45,11 +45,15 @@ service hooks. `npm run smoke` checks the actual app and map byte-range serving.
 
 ## Deployment
 
-[Deployment infrastructure and instructions](deploy/README.md) are included for
-a future DigitalOcean droplet: Nginx, a Node systemd service, a five-minute update
-timer, staged releases, health checks and rollback. On the droplet, `sudo ./setup.sh`
-installs that infrastructure and records the GitHub App key for the editor.
-Nothing has been provisioned or deployed to DigitalOcean by this migration.
+[Deployment instructions](deploy/README.md) cover Ubuntu/Debian droplets. Run
+`sudo ./setup.sh --hostname YOUR_DOMAIN_OR_IPV4` from a checkout to install Node.js
+24 and dependencies, configure the GitHub App, deploy, set up HTTPS and renewal,
+and enable the editor and automatic updates. An IPv4 address uses sslip.io, so a
+purchased domain is optional. GitHub App creation and key transfer are guided
+manual steps. Existing credentials are reused when retrying.
+
+Deployment uses staged releases, validation, health checks and rollback, separate
+from the editor's Git workspace. The scripts act on the droplet only when run there.
 
 ## Region color palette
 

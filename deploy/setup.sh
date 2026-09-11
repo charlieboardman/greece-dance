@@ -1,8 +1,7 @@
 #!/usr/bin/env bash
-# Droplet operator script: install infrastructure if needed, then record GitHub App
-# credentials for the web editor. GitHub still requires creating and installing the
-# App in a browser; this script does not host a page and only writes the result.
+# Guided droplet installation. Browser-only GitHub App steps remain interactive.
 set -Eeuo pipefail
+umask 077
 
 source_directory=$(dirname "$(readlink -f "$0")")
 repository_root=$(dirname "$source_directory")
@@ -24,19 +23,18 @@ usage() {
   cat <<'EOF'
 Usage: sudo ./setup.sh [options]
 
-Install droplet infrastructure if needed, then store the GitHub App key and
-editor password. GitHub does not allow creating that App from a script; open
-the printed URLs, then return here.
+Install dependencies, configure credentials, deploy, obtain HTTPS, and start the
+editor. Create and install the GitHub App using the printed browser instructions.
 
 Options:
-  --skip-install          Do not run deploy/install.sh
-  --hostname NAME         Public hostname (APP_ORIGIN and nginx server_name)
+  --skip-install          Configure credentials only; skip packages, deployment and HTTPS
+  --hostname NAME         Domain, sslip.io hostname, or IPv4 (converted to sslip.io)
   --repository owner/name GitHub repository (default from app.env)
   --app-id ID             GitHub App ID
   --installation-id ID    Installation ID from the install URL
   --pem PATH              Downloaded GitHub App private key
   --password-file PATH    Editor password (otherwise prompt)
-  --enable-editor         Set EDITOR_ENABLED=true (HTTPS must already work)
+  --enable-editor         Enable editor (default for full setup; requires HTTPS)
   --disable-editor        Leave or set EDITOR_ENABLED=false
   --force                 Replace an existing github-app.pem
   -h, --help
@@ -63,6 +61,10 @@ done
 if [[ "$etc" == /etc/greece-dance && "$EUID" != 0 ]]; then
   echo 'Run as root: sudo ./setup.sh' >&2
   exit 1
+fi
+
+if [[ "$skip_install" == false ]]; then
+  bash "$source_directory/bootstrap.sh"
 fi
 
 node_bin=${NODE:-}
@@ -124,11 +126,24 @@ prompt() {
   printf '%s' "$value"
 }
 
+if [[ -z "$hostname" && "$(env_value APP_ORIGIN)" != https://archive.example.org ]]; then
+  hostname=$(env_value APP_ORIGIN)
+  hostname=${hostname#https://}
+  hostname=${hostname#http://}
+fi
 if [[ -z "$hostname" && -t 0 ]]; then
   current_origin=$(env_value APP_ORIGIN)
   if [[ -z "$current_origin" || "$current_origin" == https://archive.example.org ]]; then
-    hostname=$(prompt 'Public hostname (example: archive.example.org, empty to skip): ')
+    hostname=$(prompt 'Domain or droplet IPv4 address (uses sslip.io if an IP): ')
   fi
+fi
+if [[ "$skip_install" == false && -z "$hostname" ]]; then
+  echo 'Pass --hostname with your domain or droplet IPv4 address.' >&2
+  exit 1
+fi
+if [[ "$hostname" =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  "$node_bin" --input-type=module -e 'import { isIP } from "node:net"; process.exit(isIP(process.argv[1]) === 4 ? 0 : 1)' "$hostname" || { echo 'Invalid IPv4 address.' >&2; exit 1; }
+  hostname="${hostname//./-}.sslip.io"
 fi
 if [[ -n "$hostname" ]]; then
   [[ "$hostname" =~ ^[A-Za-z0-9.-]+$ ]] || { echo 'Hostname must be a DNS name without https://.' >&2; exit 1; }
@@ -165,7 +180,7 @@ GitHub App (do this in a browser on your laptop, not on the droplet)
    That number is the Installation ID.
 
 3. Copy the key onto this droplet, from another local terminal:
-   scp ~/Downloads/*.pem root@<this-host>:/root/github-app.pem
+   scp -i /path/to/ssh-private-key /path/to/downloaded.pem root@<droplet-ip>:/root/github-app.pem
    Then paste the App ID, Installation ID, and /root/github-app.pem below.
 
 EOF
@@ -251,6 +266,13 @@ fi
 current_secret=$(env_value SESSION_SECRET)
 if [[ ${#current_secret} -lt 32 ]]; then
   upsert_env SESSION_SECRET "$("$node_bin" -e 'console.log(require("node:crypto").randomBytes(32).toString("hex"))')"
+fi
+
+if [[ "$skip_install" == false ]]; then
+  # Launch starts with the editor disabled and enables it only after verified HTTPS.
+  export GREECE_DANCE_ETC="$etc" GREECE_DANCE_NGINX="$nginx_site"
+  bash "$source_directory/launch.sh" "$hostname" "${enable_editor:-true}"
+  exit 0
 fi
 
 if [[ -z "$enable_editor" && -t 0 ]]; then

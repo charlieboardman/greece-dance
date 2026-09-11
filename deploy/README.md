@@ -1,4 +1,4 @@
-# Droplet deployment (prepared, not yet installed)
+# Droplet deployment
 
 Runtime: Node.js 24 LTS behind Nginx on Ubuntu/Debian with systemd. Installation,
 update, health-check and rollback infrastructure is included. No DigitalOcean
@@ -27,49 +27,52 @@ read editor credentials. Public repositories need no deployment credentials.
 For a private repository, configure a read-only SSH deploy key for
 `greece-deploy` and use an SSH remote in `deploy.env`.
 
-## Future first installation
+## Guided first installation
 
-Install Node.js **24 LTS at `/usr/bin/node`**, npm, Git, Nginx, curl, util-linux
-(flock), sudo, Certbot and the Certbot Nginx plugin. Point the domain's DNS at the
-droplet. Permit SSH and HTTP/HTTPS; Node listens only on loopback.
-
-From a reviewed checkout after this migration is merged:
+On an Ubuntu/Debian droplet, clone this repository and run from the checkout:
 
 ```bash
-sudo ./setup.sh
+sudo ./setup.sh --hostname 165.227.25.230
 ```
 
-`setup.sh` runs `deploy/install.sh`, then asks for the GitHub App values. To install infrastructure only:
+Replace the example IP with your droplet's public IPv4 address, or supply a domain
+that already points to it. An IPv4 address is converted to a dashed `sslip.io`
+hostname automatically, so purchasing a domain is optional. This uses sslip.io's
+external DNS service. Permit inbound SSH, HTTP (80), and HTTPS (443), including in
+any DigitalOcean firewall. Setup does not modify firewall rules.
+
+Full setup installs system packages, Node.js 24 at `/usr/bin/node` using
+NodeSource when needed, and npm dependencies before prompting for credentials.
+It installs the service definitions, stores GitHub App credentials and the editor
+password, deploys through the existing validated release mechanism, activates
+Nginx, runs Certbot, enables certificate renewal, verifies HTTPS, then enables the
+editor and automatic deployment timer. Certbot prompts for its account details
+and terms. The GitHub App creation/installation and transferring its downloaded
+key still require your browser and laptop; setup prints instructions.
+
+The canonical deployment remote and branch are in `/etc/greece-dance/deploy.env`
+(default `charlieboardman/greece-dance`, `main`). Merge the deployment/server code
+into that branch before running setup. For a private repository, first configure
+the read-only deployment SSH key described above. A custom `--repository` selects
+the editor's repository; also configure `deploy.env` for a custom deployment remote.
+
+Rerun the same command after a failure. Existing credentials and passwords are
+reused unless you request replacement; an existing Nginx symlink is accepted and
+matching certificates are retained. Failures before HTTPS verification leave the
+editor disabled and automatic deployment paused. Already deployed releases stay
+under the deployment system's control. Setup prints a diagnostic when deployment
+fails; inspect `journalctl -u greece-dance-update.service --no-pager -n 100`.
+
+For credentials-only administration without package installation or deployment:
 
 ```bash
-sudo bash deploy/install.sh
+sudo ./setup.sh --skip-install
 ```
 
-The installer installs files and reloads systemd definitions. It does not
-deploy, start the app, enable the timer, overwrite existing environment files,
-or activate the Nginx site. Configure:
-
-- `/etc/greece-dance/app.env`: `APP_ORIGIN=https://your-hostname`
-- `/etc/nginx/sites-available/greece-dance`: `server_name your-hostname`
-- `/etc/greece-dance/deploy.env`: verify remote and branch (`main`)
-
-Keep `EDITOR_ENABLED=false` until HTTPS and GitHub credentials are configured.
-The public map runs independently of the editor.
-
-```bash
-sudo systemctl start greece-dance-update.service
-sudo journalctl -u greece-dance-update.service --no-pager -n 100
-sudo ln -s /etc/nginx/sites-available/greece-dance /etc/nginx/sites-enabled/greece-dance
-sudo nginx -t
-sudo systemctl reload nginx
-sudo certbot --nginx -d your-hostname
-sudo systemctl enable greece-dance.service
-sudo systemctl enable --now greece-dance-update.timer
-```
-
-Adjust any conflicting default Nginx site. Certbot configures TLS and the HTTP
-redirect; the included Nginx file is the initial HTTP configuration used to
-obtain that certificate.
+This advanced mode requires Node.js 24 and installed checkout dependencies
+(`npm ci --omit=dev --ignore-scripts`). It does not configure HTTPS or restart
+services. For infrastructure-only installation, `sudo bash deploy/install.sh`
+remains available and requires preinstalled system prerequisites.
 
 ## Enable the password-protected editor
 
@@ -85,8 +88,9 @@ requests: read/write**.
 sudo ./setup.sh
 ```
 
-Keep `EDITOR_ENABLED=false` until HTTPS works, then `sudo ./setup.sh --enable-editor`
-and restart `greece-dance.service`. Open `/editor/` over HTTPS. Sessions expire
+Full setup keeps `EDITOR_ENABLED=false` until HTTPS works, then enables the editor
+and restarts `greece-dance.service` automatically. Use `--disable-editor` to leave
+it disabled. Open `/editor/` over HTTPS. Sessions expire
 after eight hours of inactivity and are cleared on service restart. Form input
 stays on the page when a session expires so the editor can log in again without
 discarding it.
