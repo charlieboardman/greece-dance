@@ -19,7 +19,7 @@ install -d -m 0700 -o greece-dance -g greece-dance /var/lib/greece-dance-editor
 install -d -m 0750 -o root -g greece-dance /etc/greece-dance
 # Deployment config is separate from app secrets and readable by the deploy account.
 install -d -m 0755 /usr/local/lib/greece-dance/deploy /usr/local/libexec
-for file in common.sh update.sh rollback.sh runtime.sh; do install -m 0755 "$source_directory/$file" /usr/local/lib/greece-dance/deploy/; done
+for file in common.sh upgrade.sh rollback.sh runtime.sh; do install -m 0755 "$source_directory/$file" /usr/local/lib/greece-dance/deploy/; done
 install -m 0755 "$source_directory/restart.sh" /usr/local/libexec/greece-dance-restart
 for file in Containerfile containerignore compose.yaml; do install -m 0644 "$source_directory/$file" /usr/local/lib/greece-dance/deploy/; done
 for file in greece-dance.service greece-dance-update.service greece-dance-update.timer; do install -m 0644 "$source_directory/$file" /etc/systemd/system/; done

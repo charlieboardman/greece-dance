@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile, access } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { parseDancesMarkdown } from "./legacy-dances.js";
-import { jsonText, SUBREGION_SUFFIX, loadArchive } from "../lib/archive.js";
+import { jsonText, SUBREGION_SUFFIX, loadArchive } from "./nested-archive.js";
 
 export async function migrateContent(source, destination) {
   try { await access(destination); throw new Error(`Destination already exists: ${destination}`); }

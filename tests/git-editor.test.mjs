@@ -16,15 +16,15 @@ async function fixture(t) {
   await runGit(["clone", remote, clone]);
   const git = async (...args) => (await runGit(args, { cwd: clone })).output.toString("utf8").trim();
   await git("config", "user.email", "test@example.test"); await git("config", "user.name", "Client");
-  await mkdir(path.join(clone, "info", "region"), { recursive: true });
-  await writeFile(path.join(clone, "info", "region", "region.json"), jsonText({ names, color: "#336699" }));
+  await mkdir(path.join(clone, "info", "regions", "region"), { recursive: true });
+  await writeFile(path.join(clone, "info", "regions", "region", "region.json"), jsonText({ names, color: "#336699" }));
   await writeFile(path.join(clone, "app.js"), "original code\n");
   await git("add", "."); await git("commit", "-m", "Initial archive"); await git("push", "origin", "main");
   const pullRequests = { calls: [], fail: false, async ensure(value) { this.calls.push(value); if (this.fail) throw new Error("Offline"); return { number: 1, url: "https://github.com/example/archive/pull/1" }; } };
   const editor = new GitEditor({ directory: path.join(root, "cache.git"), remote, pullRequests });
   return { editor, clone, git, pullRequests };
 }
-const update = (base, en = "Renamed") => ({ base, change: { action: "update", path: "region", metadata: { names: { ...names, en }, color: "#336699" } } });
+const update = (base, en = "Renamed") => ({ base, change: { action: "update", path: "regions/region", metadata: { names: { ...names, en }, color: "#336699" } } });
 async function proposal(editor, request) { return { ...request, ...await editor.preview(request), submissionId: randomUUID() }; }
 
 test("web proposal changes only content on its own branch and is retryable after PR failure", async (t) => {
@@ -40,8 +40,8 @@ test("web proposal changes only content on its own branch and is retryable after
   const retried = await editor.submit(request);
   assert.equal(result.commit, retried.commit);
   await git("fetch", "origin", result.branch);
-  assert.equal(await git("diff", "--name-only", snapshot.revision, result.commit), "info/region/region.json");
-  assert.equal(JSON.parse(await git("show", `${result.commit}:info/region/region.json`)).names.en, "Renamed");
+  assert.equal(await git("diff", "--name-only", snapshot.revision, result.commit), "info/regions/region/region.json");
+  assert.equal(JSON.parse(await git("show", `${result.commit}:info/regions/region/region.json`)).names.en, "Renamed");
   assert.equal((await editor.snapshot()).revision, snapshot.revision);
   await assert.rejects(editor.submit({ ...request, change: { ...request.change, metadata: { ...request.change.metadata, color: "#ffffff" } } }), /different edit/u);
 });
@@ -49,24 +49,24 @@ test("web proposal changes only content on its own branch and is retryable after
 test("stale forms reject overlapping edits, including parent changes", async (t) => {
   const { editor, clone, git } = await fixture(t);
   const { revision } = await editor.snapshot();
-  await writeFile(path.join(clone, "info/region/region.json"), jsonText({ names, color: "#ffffff" }));
+  await writeFile(path.join(clone, "info/regions/region/region.json"), jsonText({ names, color: "#ffffff" }));
   await git("add", "."); await git("commit", "-m", "Client changes region"); await git("push", "origin", "main");
   await assert.rejects(editor.preview(update(revision)), (error) => error.status === 409);
-  await assert.rejects(editor.preview({ base: revision, change: { action: "create", path: "region/village", metadata: { names, latitude: 40, longitude: 22 }, info: { en: "notes", el: "" } } }), /parent changed/u);
+  await assert.rejects(editor.preview({ base: revision, change: { action: "create", path: "villages/village", metadata: { names, region: "region", subregion: null, latitude: 40, longitude: 22 }, info: { en: "notes", el: "" } } }), /region\/subregion changed/u);
 });
 
 test("unrelated client edits are retained in a web proposal", async (t) => {
   const { editor, clone, git } = await fixture(t);
   const { revision } = await editor.snapshot();
   const request = await proposal(editor, update(revision));
-  await mkdir(path.join(clone, "info/second"));
-  await writeFile(path.join(clone, "info/second/region.json"), jsonText({ names, color: "#ffffff" }));
+  await mkdir(path.join(clone, "info/regions/second"));
+  await writeFile(path.join(clone, "info/regions/second/region.json"), jsonText({ names, color: "#ffffff" }));
   await git("add", "."); await git("commit", "-m", "Add another region"); await git("push", "origin", "main");
   const latest = await git("rev-parse", "HEAD");
   const result = await editor.submit(request);
   await git("fetch", "origin", result.branch);
   assert.equal(await git("rev-parse", `${result.commit}^`), latest);
-  assert.equal(await git("show", `${result.commit}:info/second/region.json`), jsonText({ names, color: "#ffffff" }).trim());
+  assert.equal(await git("show", `${result.commit}:info/regions/second/region.json`), jsonText({ names, color: "#ffffff" }).trim());
 });
 
 test("malformed operations and invalid previews never push branches", async (t) => {
@@ -78,21 +78,43 @@ test("malformed operations and invalid previews never push branches", async (t) 
   assert.equal(await git("ls-remote", "origin", "refs/heads/editor/*"), "");
 });
 
-test("Git proposals handle subregion paths with spaces and village removal", async (t) => {
+test("Git proposals handle flat villages and removal", async (t) => {
   const { editor, clone, git } = await fixture(t);
-  const folder = "region/area (subregion)";
-  await mkdir(path.join(clone, "info", folder, "village"), { recursive: true });
-  await writeFile(path.join(clone, "info", folder, "subregion.json"), jsonText({ names }));
-  await writeFile(path.join(clone, "info", folder, "village/village.json"), jsonText({ names, latitude: 40, longitude: 22 }));
-  await writeFile(path.join(clone, "info", folder, "village/info.el.md"), "Χοροί\n");
+  const folder = "villages/village";
+  await mkdir(path.join(clone, "info", folder), { recursive: true });
+  await writeFile(path.join(clone, "info", folder, "village.json"), jsonText({ names, region: "region", subregion: null, latitude: 40, longitude: 22 }));
+  await writeFile(path.join(clone, "info", folder, "info.el.md"), "Χοροί\n");
   await git("add", "."); await git("commit", "-m", "Add village"); await git("push", "origin", "main");
   const { revision } = await editor.snapshot();
-  const request = await proposal(editor, { base: revision, change: { action: "update", path: `${folder}/village`,
-    metadata: { names, latitude: 40.5, longitude: 22 }, info: { en: "Dance notes", el: "Χοροί" } } });
+  const request = await proposal(editor, { base: revision, change: { action: "update", path: folder,
+    metadata: { names, region: "region", subregion: null, latitude: 40.5, longitude: 22 }, info: { en: "Dance notes", el: "Χοροί" } } });
   const result = await editor.submit(request);
   await git("fetch", "origin", result.branch);
-  assert.equal(await git("show", `${result.commit}:info/${folder}/village/info.en.md`), "Dance notes");
-  const deletion = await editor.submit(await proposal(editor, { base: revision, change: { action: "delete", path: `${folder}/village` } }));
+  assert.equal(await git("show", `${result.commit}:info/${folder}/info.en.md`), "Dance notes");
+  const deletion = await editor.submit(await proposal(editor, { base: revision, change: { action: "delete", path: folder } }));
   await git("fetch", "origin", deletion.branch);
-  assert.equal(await git("ls-tree", "-r", "--name-only", deletion.commit, "--", `info/${folder}`), `info/${folder}/subregion.json`);
+  assert.equal(await git("ls-tree", "-r", "--name-only", deletion.commit, "--", `info/${folder}`), "");
+});
+
+test("moving a village creates only a metadata proposal and recovers after a partial push", async t => {
+  const { editor, clone, git, pullRequests } = await fixture(t);
+  for (const folder of ["regions/second", "subregions/area", "villages/stable"]) await mkdir(path.join(clone, "info", folder), { recursive: true });
+  const metadata = { names, region: "region", subregion: null, latitude: 40, longitude: 22 };
+  await writeFile(path.join(clone, "info/regions/second/region.json"), jsonText({ names, color: "#123456" }));
+  await writeFile(path.join(clone, "info/subregions/area/subregion.json"), jsonText({ names, region: "second" }));
+  await writeFile(path.join(clone, "info/villages/stable/village.json"), jsonText(metadata));
+  await writeFile(path.join(clone, "info/villages/stable/info.en.md"), "\nNotes\n\n");
+  await git("add", "."); await git("commit", "-m", "Village and destination"); await git("push", "origin", "main");
+  const { revision } = await editor.snapshot();
+  const request = await proposal(editor, { base: revision, change: { action: "update", path: "villages/stable",
+    metadata: { ...metadata, region: "second", subregion: "area" }, info: { en: "Notes", el: "" } } });
+  pullRequests.fail = true;
+  await assert.rejects(editor.submit(request), /branch was pushed/u);
+  pullRequests.fail = false;
+  const result = await editor.submit(request);
+  assert.equal((await editor.submit(request)).commit, result.commit);
+  await git("fetch", "origin", result.branch);
+  assert.equal(await git("diff", "--name-only", revision, result.commit), "info/villages/stable/village.json");
+  assert.equal((await editor.snapshot()).revision, revision);
+  assert.equal(JSON.parse(await git("show", `${result.commit}:info/villages/stable/village.json`)).subregion, "area");
 });

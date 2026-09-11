@@ -6,7 +6,7 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 Environment=DEPLOY_CONFIG=/etc/greece-dance/deploy.env
-ExecStart=/usr/local/lib/greece-dance/deploy/update.sh
+ExecStart=/usr/local/lib/greece-dance/deploy/upgrade.sh
 TimeoutStartSec=30min
 PrivateTmp=true
 UMask=0022

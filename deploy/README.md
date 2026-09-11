@@ -114,7 +114,14 @@ publish a new app commit so a new image is built. Images are retained locally fo
 rollback; do not prune images used by `current` or `previous`. Old source snapshots
 and unreferenced images can be removed periodically to recover disk space.
 
+From an up-to-date repository checkout, upgrade directly with `sudo ./upgrade.sh`.
+The existing timer and service names remain `greece-dance-update` so previously
+configured scheduling continues to work. Rerun setup once to update the installed
+service definition to the renamed deployment script.
+
 ```bash
+sudo ./upgrade.sh
+# Or use the installed service:
 sudo systemctl start greece-dance-update.service
 sudo journalctl -u greece-dance-update.service -f
 sudo journalctl -u greece-dance.service -f

@@ -1,41 +1,41 @@
 # Editing the archive
 
-`info/` is the canonical content source. Edit these JSON and Markdown files
-directly, or use `/editor/` to propose the same changes in a pull request.
-There are no separate dance records: a village's info text contains its dances.
+`info/` is the sole live content source. JSON stores names and relationships;
+Markdown stores each village's dances and research notes. There is no database
+or separate dance entity. Files may be edited directly or through `/editor/`,
+which proposes content-only changes in GitHub PRs.
 
 ```text
 info/
-  thessaly/
-    region.json
-    agrafa (subregion)/
+  regions/
+    thessaly/
+      region.json
+  subregions/
+    agrafa/
       subregion.json
-      argithea/
-        village.json
-        info.en.md
-        info.el.md
-    another-village/
+  villages/
+    thessaly--agrafa--petrilo/
       village.json
       info.en.md
+      info.el.md
 ```
 
-Top-level folders are regions. A folder ending in exactly ` (subregion)` is a
-subregion directly under a region. Villages sit directly under a region or
-under one of its subregions. Deeper nesting is not supported.
-
-Folder slugs contain lowercase ASCII letters, numbers and single hyphens:
-`argithea`, `macedonia-eastern`, `agrafa (subregion)`. Keep slugs stable when
-changing a display name. The path establishes membership and the map's internal
-ID; moving or renaming folders changes that ID. Names need not be unique; the
-same geographic place can have records in different cultural regions.
+Each collection is flat. Directory names are permanent IDs, not geographic
+paths. Existing village IDs retain their historical `--` components to preserve
+map identity, but those components no longer determine membership. Do not rename
+an ID when changing its displayed name or region. New IDs derive from English
+names; the editor adds a numeric suffix on collision. IDs are unique within each
+collection. They contain lowercase ASCII letters, digits and single or double
+hyphens between words. Different records may share display names.
 
 ## Metadata
 
-Every folder needs its matching metadata file, including empty regions and
-subregions. Both names are required, nonempty and trimmed. Unknown fields are
-rejected so misspellings cannot silently lose data.
+Every record directory needs its type's JSON file. Both names must be nonempty,
+trimmed, single-line strings of at most 200 characters. Unknown or missing fields
+are rejected. Region and subregion membership comes exclusively from references
+in JSON, never from names or the physical folder location.
 
-`region.json` (example color only; retain the actual region's existing color):
+`regions/thessaly/region.json` (example color; preserve existing colors):
 
 ```json
 {
@@ -44,49 +44,62 @@ rejected so misspellings cannot silently lose data.
 }
 ```
 
-`subregion.json`:
+`subregions/agrafa/subregion.json`:
 
 ```json
 {
-  "names": { "en": "Agrafa", "el": "Άγραφα" }
+  "names": { "en": "Agrafa", "el": "Άγραφα" },
+  "region": "thessaly"
 }
 ```
 
-`village.json`:
+`villages/thessaly--agrafa--petrilo/village.json`:
 
 ```json
 {
-  "names": { "en": "Argithea", "el": "Αργιθέα" },
-  "latitude": 39.357,
-  "longitude": 21.538
+  "names": { "en": "Petrilo", "el": "Πετρίλο" },
+  "latitude": 39.29,
+  "longitude": 21.46,
+  "region": "thessaly",
+  "subregion": "agrafa"
 }
 ```
 
-Colors must be six-digit hex colors. Coordinates are JSON numbers, latitude
-between -90 and 90 and longitude between -180 and 180. Region/subregion references
-are not duplicated in village metadata.
+The coordinates above illustrate the schema, not a research correction. Latitude
+and longitude must be numeric, within -90..90 and -180..180. Colors must be
+six-digit hex values. `region` must reference an existing region ID. A village's
+`subregion` must be `null` (direct region membership) or an existing subregion ID
+belonging to that same region. Empty regions and subregions are supported.
 
-## Info
+## Moves and editing
 
-`info.en.md` and `info.el.md` are optional UTF-8 Markdown files next to
-`village.json`. English is the fallback for missing Greek text; English display
-also falls back to Greek if only Greek is present, preserving the existing app.
-Headings of any level are ordinary Markdown because structural metadata is in
-separate files. The public map and editor preview escape raw HTML and render
-images as their alt text, as the original map did.
+To move a village, edit only its `region` and `subregion` fields. Keep the directory
+and Markdown files in place. The web editor shows a required Region dropdown and
+an optional Subregion dropdown filtered by region, with a None option. These
+fields appear when creating and editing villages. English names appear throughout
+the editor; IDs are internal. The archive tree is reconstructed from references.
 
-Use paragraphs, lists, headings and links for dance information and sources.
-There is no new dance schema or attachment system. Only documented metadata
-and info files belong inside `info/`; keep supporting documentation elsewhere.
-Symlinks and executable files are not supported. Each file is limited to 128 KiB,
-and the filesystem archive to 16 MiB of text.
+Moving a subregion with villages through direct file edits requires updating its
+villages' region references in the same commit. The editor validates the entire
+result and rejects inconsistent relationships. Delete a village by deleting its
+record directory. Regions/subregions must be empty before deletion. At least one
+region must remain.
 
-## Add, edit, delete and validate
+Submissions use the revision the form originally loaded, even after refreshing
+the archive. Conflicts include the edited record and its source/destination
+region/subregion metadata. Unrelated edits are retained. Errors preserve the form,
+and a partially pushed submission can be retried without duplicate commits or PRs.
 
-Create the relevant folder and metadata; add info files for a village as needed.
-Delete a village by deleting its folder. The web editor only deletes empty
-regions/subregions; remove or move their children deliberately first. Keep at
-least one region, which may itself be empty.
+## Markdown and file rules
+
+Optional `info.en.md` and `info.el.md` live beside `village.json`. English is the
+fallback for missing Greek, and the map can fall back to Greek when English is
+missing. Headings are ordinary Markdown. Raw HTML is escaped and images render
+as alt text. Existing text is preserved byte-for-byte on moves when unchanged.
+
+Only the documented files belong in `info/`; keep supporting documentation
+elsewhere. Symlinks, executable files and extra nesting are rejected. Each file
+is limited to 128 KiB and the entire archive to 16 MiB of text.
 
 ```bash
 npm run validate
@@ -94,11 +107,17 @@ npm test
 git diff -- info/
 ```
 
-Commit and push through the usual review workflow. GitHub `main` is canonical;
-the deployed site updates after a successful deployment. Unmerged editor PRs
-are proposals and will not appear in editor snapshots until merged.
+## Migration history
 
-`tests/fixtures/legacy-dances.md` preserves the original master Markdown,
-including source comments, as a migration fixture. It is not live content.
-`scripts/migrate-content.js` converts that format into a new directory and
-refuses to overwrite an existing directory.
+`tests/fixtures/legacy-dances.md` is an unchanged historical fixture, never live
+content. `scripts/migrate-content.js` still converts that original Markdown into
+the historical nested format using `scripts/nested-archive.js` (migration-only).
+
+`scripts/flatten-content.js SOURCE DESTINATION` converts a nested archive to the
+current flat format. It validates before writing and refuses existing destination
+directories. It preserves names, colors, coordinates, map village IDs, and exact
+Markdown bytes. Subregion ID collisions are disambiguated with the original
+region ID. The live loader accepts only the current flat schema.
+
+Existing unmerged proposals using old paths must be recreated against the new
+archive before merging. Reload/reopen the editor after the schema deployment.

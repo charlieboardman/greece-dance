@@ -4,8 +4,9 @@ Read `content/README.md` before editing archive content.
 
 - `info/` is the sole live content source. Region and village JSON contain
   metadata; village Markdown contains the dances and research notes.
-- Follow the documented ` (subregion)` folder convention. Keep folder slugs
-  stable when renaming displayed names. Preserve existing region colors.
+- Follow the documented flat `regions/`, `subregions/`, and `villages/` schema.
+  Keep directory IDs stable; membership comes from JSON references. Preserve
+  existing region colors.
 - Do not invent separate dance entities or infer shared dances from names.
 - Do not change the legacy migration fixture when adding or correcting content.
 - Run `npm run validate` and relevant tests. Use Node.js 24 LTS.

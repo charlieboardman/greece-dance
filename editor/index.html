@@ -29,8 +29,9 @@
     <section class="card">
       <form id="edit" hidden>
         <h2 id="heading">Edit record</h2>
-        <div id="creation" hidden>
-          <label id="parent-label"><span id="parent-caption">Region</span><select id="parent"></select></label>
+        <div class="pair" id="location-fields" hidden>
+          <label>Region<select id="region" required></select></label>
+          <label id="subregion-label">Subregion<select id="subregion"><option value="">None</option></select></label>
         </div>
         <div class="pair">
           <label>English name<input id="name-en" required maxlength="200"></label>

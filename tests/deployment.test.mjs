@@ -70,7 +70,7 @@ printf 'sha256:%064d\\n' 1 > "$output"
     PATH: `${bin}:${process.env.PATH}`,
     DEPLOY_REPOSITORY: remote, DEPLOY_RESTART_HOOK: hook, DEPLOY_HEALTH_ATTEMPTS: "1",
     DEPLOY_HEALTH_URL: `http://127.0.0.1:${health.address().port}/api/health` };
-  const update = fileURLToPath(new URL("../deploy/update.sh", import.meta.url));
+  const update = fileURLToPath(new URL("../deploy/upgrade.sh", import.meta.url));
   const rollback = fileURLToPath(new URL("../deploy/rollback.sh", import.meta.url));
   // A host-Node release must survive a failed migration unchanged.
   const legacy = path.join(deploy, "releases", "host-release");

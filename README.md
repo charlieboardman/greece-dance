@@ -24,7 +24,8 @@ configured repository. Automated tests use temporary local remotes instead.
 ## Content and editing
 
 [`info/`](info/) is the canonical content directory. Region and village JSON
-store names and metadata; optional subregion folders end in ` (subregion)`;
+store names and metadata in flat `regions/`, `subregions/`, and `villages/`
+collections. JSON references determine membership; directory IDs stay fixed.
 village `info.en.md` and `info.el.md` contain the dances and research notes.
 Read the [complete folder schema and editing guide](content/README.md).
 
