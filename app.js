@@ -1,4 +1,3 @@
-import { DancesMarkdownError, parseDancesMarkdown } from "./dances-markdown.js";
 import {
   expandedVillageBounds,
   localizedInfo,
@@ -29,10 +28,10 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
   try {
     if (!window.marked?.parse) throw new Error("The bundled Markdown reader could not be loaded.");
     if (!window.DOMPurify?.sanitize) throw new Error("The bundled HTML sanitizer could not be loaded.");
-    const dancesUrl = new URL("./content/dances.md", import.meta.url);
+    const dancesUrl = new URL("./api/archive", import.meta.url);
     const response = await fetch(dancesUrl, { cache: "no-store" });
-    if (!response.ok) throw new Error(`Could not load content/dances.md (HTTP ${response.status}).`);
-    regions = sortRegionsAlphabetically(parseDancesMarkdown(await response.text()).regions);
+    if (!response.ok) throw new Error(`Could not load the archive (HTTP ${response.status}).`);
+    regions = sortRegionsAlphabetically((await response.json()).regions);
   } catch (error) {
     contentError = error;
     console.error("Atlas content error:", error);
@@ -414,17 +413,15 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
   }
 
   function showContentError(error) {
-    const isDancesError = error instanceof DancesMarkdownError;
-    const location = isDancesError && error.location ? `${error.location}: ` : "";
     els.panelTitle.textContent = "Atlas content error";
     els.panelTitle.hidden = false;
     els.archive.classList.add("has-panel-title");
     els.search.disabled = true;
     els.villageList.innerHTML = `
       <section class="content-error" role="alert">
-        <p class="content-error-label">Could not read content/dances.md</p>
-        <p><strong>${escapeHtml(location)}</strong>${escapeHtml(error.message || String(error))}</p>
-        <p>Fix that line and reload this page. No build is required.</p>
+        <p class="content-error-label">Could not read the archive</p>
+        <p>${escapeHtml(error.message || String(error))}</p>
+        <p>Please try again shortly. The archive administrator can check the server logs.</p>
       </section>
     `;
     document.querySelector("#mobile-count").textContent = "!";

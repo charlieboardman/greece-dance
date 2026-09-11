@@ -4,8 +4,22 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "python3 scripts/serve.py 8000",
-    "test": "node --test"
+    "dev": "node --env-file-if-exists=.env --watch server/index.js",
+    "start": "node --env-file-if-exists=.env server/index.js",
+    "validate": "node scripts/validate-content.js",
+    "test": "node --test tests/*.test.mjs",
+    "password:hash": "node scripts/hash-password.js",
+    "migrate:legacy": "node scripts/migrate-content.js",
+    "smoke": "node scripts/smoke-release.js"
   },
-  "description": "A no-build National Ministry of Greek Folk Dance Research Map with a self-hosted relief basemap"
+  "description": "Greek folk dance atlas with a Git-backed content editor",
+  "dependencies": {
+    "@octokit/auth-app": "^8.3.1",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0",
+    "express-session": "^1.19.0"
+  },
+  "engines": {
+    "node": ">=24 <25"
+  }
 }

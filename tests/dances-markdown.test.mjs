@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { DancesMarkdownError, parseDancesMarkdown, stripComments } from "../dances-markdown.js";
+import { DancesMarkdownError, parseDancesMarkdown, stripComments } from "../scripts/legacy-dances.js";
 
-test("the canonical Markdown remains valid as its content changes", async () => {
-  const source = await readFile(new URL("../content/dances.md", import.meta.url), "utf8");
+test("the preserved legacy migration fixture remains valid", async () => {
+  const source = await readFile(new URL("./fixtures/legacy-dances.md", import.meta.url), "utf8");
   const atlas = parseDancesMarkdown(source);
 
   const hierarchyPlaces = atlas.regions.flatMap((region) => [

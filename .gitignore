@@ -1,0 +1,10 @@
+node_modules/
+.env
+.env.*
+!.env.example
+.state/
+coverage/
+playwright-report/
+test-results/
+*.pem
+*.key

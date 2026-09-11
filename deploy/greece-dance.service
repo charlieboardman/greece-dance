@@ -1,0 +1,23 @@
+[Unit]
+Description=Greek folk dance archive and editor
+After=network.target
+
+[Service]
+Type=simple
+User=greece-dance
+Group=greece-dance
+WorkingDirectory=/srv/greece-dance/current
+EnvironmentFile=/etc/greece-dance/app.env
+ExecStart=/usr/bin/node server/index.js
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=15
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/greece-dance-editor
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

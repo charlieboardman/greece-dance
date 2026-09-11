@@ -1,0 +1,14 @@
+[Unit]
+Description=Validate and deploy the latest Greek dance archive
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=greece-deploy
+Group=greece-deploy
+Environment=DEPLOY_CONFIG=/etc/greece-dance/deploy.env
+ExecStart=/usr/local/lib/greece-dance/deploy/update.sh
+TimeoutStartSec=10min
+PrivateTmp=true
+UMask=0022
