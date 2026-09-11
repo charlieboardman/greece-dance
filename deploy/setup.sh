@@ -252,7 +252,7 @@ elif ! valid_hash "$current_hash"; then
     echo 'Pass --password-file or set an editor password in a terminal.' >&2
     exit 1
   fi
-  read -rs -p 'Editor password (at least 12 characters): ' password; echo
+  read -rs -p 'Editor password: ' password; echo
   read -rs -p 'Confirm password: ' confirm; echo
   [[ "$password" == "$confirm" ]] || { echo 'Passwords did not match.' >&2; exit 1; }
   unset confirm
@@ -262,6 +262,8 @@ if [[ -n "$password" ]]; then
   unset password
   upsert_env EDITOR_PASSWORD_HASH "$hash"
 fi
+
+valid_hash "$(env_value EDITOR_PASSWORD_HASH)" || { echo 'Enter a nonempty editor password.' >&2; exit 1; }
 
 current_secret=$(env_value SESSION_SECRET)
 if [[ ${#current_secret} -lt 32 ]]; then

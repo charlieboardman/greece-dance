@@ -108,3 +108,19 @@ test("setup rejects invalid IPv4 addresses", async (t) => {
   assert.notEqual(result.code, 0);
   assert.match(result.output, /Invalid IPv4/u);
 });
+
+test("setup accepts short passwords that can authenticate, but rejects empty passwords", async (t) => {
+  const { verifyPassword } = await import("../server/auth.js");
+  const { etc, env, args, password } = await fixture(t);
+  await writeFile(password, "");
+  let result = await run(args, env);
+  assert.notEqual(result.code, 0);
+  assert.match(result.output, /nonempty editor password/u);
+  await writeFile(password, "x");
+  result = await run([...args, "--force"], env);
+  assert.equal(result.code, 0, result.output);
+  const config = await readFile(path.join(etc, "app.env"), "utf8");
+  const hash = config.match(/^EDITOR_PASSWORD_HASH=(.+)$/mu)[1];
+  assert.equal(await verifyPassword("x", hash), true);
+  assert.equal(await verifyPassword("wrong", hash), false);
+});

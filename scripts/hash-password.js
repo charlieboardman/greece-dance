@@ -7,7 +7,7 @@ if (process.stdin.isTTY) {
   let muted = false;
   const output = new Writable({ write(chunk, _encoding, callback) { if (!muted) process.stdout.write(chunk); callback(); } });
   const readline = createInterface({ input: process.stdin, output, terminal: true });
-  password = await new Promise((resolve) => { readline.question("Editor password (at least 12 characters): ", resolve); muted = true; });
+  password = await new Promise((resolve) => { readline.question("Editor password: ", resolve); muted = true; });
   readline.close(); process.stdout.write("\n");
 } else {
   const chunks = [];
