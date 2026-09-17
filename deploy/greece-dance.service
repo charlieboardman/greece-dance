@@ -2,7 +2,7 @@
 Description=Greek folk dance archive and editor (Podman Compose, Node 24)
 After=network-online.target
 Wants=network-online.target
-RequiresMountsFor=/var/lib/containers/storage /var/lib/greece-dance-editor
+RequiresMountsFor=/var/lib/containers/storage /var/lib/greece-dance-editor /var/lib/greece-dance-content
 
 [Service]
 Type=exec

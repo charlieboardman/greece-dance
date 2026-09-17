@@ -9,8 +9,8 @@ import { SessionStore, verifyPassword } from "./auth.js";
 
 export async function createApp({ root = fileURLToPath(new URL("../", import.meta.url)), editor = null,
   passwordHash = "", sessionSecret = "", origin = "http://localhost:8000", production = false,
-  revision = "development", loginLimit = 10 } = {}) {
-  const archive = await loadArchive(path.join(root, "info"));
+  revision = "development", loginLimit = 10, published = null } = {}) {
+  const archive = published ? (await published.snapshot()).archive : await loadArchive(path.join(root, "info"));
   const app = express();
   app.disable("x-powered-by");
   if (production) app.set("trust proxy", "loopback");
@@ -19,8 +19,9 @@ export async function createApp({ root = fileURLToPath(new URL("../", import.met
   });
   app.get("/api/health", (_req, res) => res.set("Cache-Control", "no-store").json({ ok: true, revision }));
   app.get("/api/archive", async (_req, res) => {
-    const current = production ? archive : await loadArchive(path.join(root, "info"));
-    res.set("Cache-Control", "no-store").json({ regions: current.regions, revision });
+    const live = published ? await published.snapshot() : null;
+    const current = live?.archive || (production ? archive : await loadArchive(path.join(root, "info")));
+    res.set("Cache-Control", "no-store").json({ regions: current.regions, revision: live?.revision || revision, appRevision: revision });
   });
   const router = express.Router();
   app.use("/api/editor", router);
@@ -68,6 +69,8 @@ export async function createApp({ root = fileURLToPath(new URL("../", import.met
       if (error) return next(error);
       res.clearCookie("dance_session", { path: "/api/editor" }).json({ ok: true });
     }));
+    router.get("/status", rateLimit({ windowMs: 60_000, limit: 120, standardHeaders: "draft-8", legacyHeaders: false }),
+      async (req, res) => res.json(await editor.status(req.query.id)));
     router.use(rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: "draft-8", legacyHeaders: false,
       message: { error: "Too many editor requests. Try again in a minute." } }));
     router.get("/archive", async (_req, res) => res.json(await editor.snapshot()));
@@ -87,7 +90,7 @@ export async function createApp({ root = fileURLToPath(new URL("../", import.met
   app.use((error, _req, res, _next) => {
     const known = error instanceof ContentError;
     const status = known ? error.status : error.type === "entity.too.large" ? 413 : error instanceof SyntaxError ? 400 : 500;
-    if (status === 500) console.error("Request failed:", error.message);
+    if (status === 500) console.error("Request failed; inspect application configuration and retry.");
     res.status(status).json({ error: known ? error.message : status === 413 ? "The submission is too large." : status === 400 ? "Invalid JSON request." : "The request failed. Check server logs.",
       ...(error.branch ? { branch: error.branch } : {}) });
   });

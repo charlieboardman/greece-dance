@@ -40,3 +40,7 @@ pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #f3efe7; paddi
 :focus-visible { outline: 3px solid #0d5eaf; outline-offset: 3px; }
 @media (max-width: 800px) { main { grid-template-columns: 1fr; } #records { height: 180px; } }
 @media (max-width: 500px) { .pair { grid-template-columns: 1fr; gap: 0; } body { padding: 14px; } .card { padding: 18px; } }
+/* Busy status is shared across editor visitors; drafts remain in place. */
+.spinner { display: inline-block; width: 1em; height: 1em; border: 2px solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }

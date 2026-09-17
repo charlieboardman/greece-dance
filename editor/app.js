@@ -7,28 +7,100 @@ let current = null;
 let proposal = null;
 let dirty = false;
 let busy = false;
+let serverBusy = true;
+let pending = null;
+let polling = false;
+const storageKey = "dance-editor-draft-v1";
+const fields = ["name-en", "name-el", "color", "latitude", "longitude", "region", "subregion", "info-en", "info-el", "delete"];
+
+function persistDraft() {
+  if (!current) return;
+  const values = Object.fromEntries(fields.map(id => [id, $(id).type === "checkbox" ? $(id).checked : $(id).value]));
+  sessionStorage.setItem(storageKey, JSON.stringify({ current, values, proposal, pending, dirty }));
+}
+function restoreDraft() {
+  const saved = sessionStorage.getItem(storageKey);
+  if (!saved) return;
+  try {
+    const draft = JSON.parse(saved);
+    openRecord(draft.current, draft.current.creating);
+    current = draft.current; // Preserve the loaded revision, never rebase a draft silently.
+    fillLocations(draft.values.region, draft.values.subregion);
+    for (const id of fields) {
+      if ($(id).type === "checkbox") $(id).checked = draft.values[id];
+      else $(id).value = draft.values[id];
+    }
+    proposal = draft.proposal; pending = draft.pending; dirty = draft.dirty;
+    renderInfo();
+    persistDraft();
+    if (proposal) { $("preview").hidden = false; $("changes").textContent = "Your previous save is retained. Retry it to recover, or preview your draft again."; }
+  } catch { status("Could not restore the saved draft.", true); }
+}
+function controls() {
+  document.querySelectorAll("button").forEach(button => { button.disabled = busy || (serverBusy && button.closest("#workspace")); });
+  document.querySelectorAll("#edit input, #edit select, #edit textarea").forEach(input => {
+    input.disabled = busy || serverBusy || (input.id === "region" && current?.type === "region");
+  });
+  $("processing").hidden = !serverBusy;
+  $("submit").textContent = busy || serverBusy ? "Please wait…" : "Save changes";
+}
+async function saved(operation) {
+  const recordPath = pending?.change.path;
+  pending = null; proposal = null; dirty = false;
+  sessionStorage.removeItem(storageKey);
+  await refresh();
+  const record = snapshot.records.find(record => record.path === recordPath);
+  if (record) openRecord(record);
+  else { current = null; $("edit").hidden = true; $("preview").hidden = true; $("empty").hidden = false; }
+  status("Saved and live. Refresh the map to see your changes.");
+}
+async function checkProcessing() {
+  const result = await api(`status${pending ? `?id=${encodeURIComponent(pending.submissionId)}` : ""}`);
+  const wasBusy = serverBusy;
+  serverBusy = result.busy;
+  controls();
+  if (!serverBusy && pending && result.operation?.submissionId === pending.submissionId) {
+    if (result.operation.state === "completed") await saved(result.operation);
+    else if (result.operation.state === "failed") status(result.operation.error, true);
+  } else if (wasBusy && !serverBusy && snapshot && !dirty && !pending) {
+    const recordPath = current?.path;
+    await refresh();
+    const record = snapshot.records.find(record => record.path === recordPath);
+    if (record) openRecord(record);
+    else if (recordPath) { current = null; $("edit").hidden = true; $("preview").hidden = true; $("empty").hidden = false; }
+  }
+}
+async function initialize() {
+  await checkProcessing();
+  while (serverBusy) { await new Promise(resolve => setTimeout(resolve, 1500)); await checkProcessing(); }
+  await refresh(); restoreDraft(); await checkProcessing();
+}
 
 function status(message, error = false) { $("status").textContent = message; $("status").classList.toggle("error", error); }
-function invalidate() { proposal = null; $("preview").hidden = true; dirty = true; }
+function invalidate() { proposal = null; pending = null; $("preview").hidden = true; dirty = true; }
 async function api(endpoint, body) {
   const response = await fetch(`/api/editor/${endpoint}`, {
     method: body === undefined ? "GET" : "POST", credentials: "same-origin",
+    signal: AbortSignal.timeout(body === undefined ? 15000 : 120000),
     headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
     ...(body === undefined ? {} : { body: JSON.stringify(body) })
   });
   const result = await response.json();
   if (!response.ok) {
     if (response.status === 401) { $("login").hidden = false; $("workspace").hidden = true; }
-    throw new Error(result.error || "The request failed.");
+    const error = new Error(result.error || "The request failed."); error.status = response.status; throw error;
   }
   return result;
 }
 async function perform(task) {
   if (busy) return;
   busy = true;
-  document.querySelectorAll("button").forEach((button) => { button.disabled = true; });
-  try { await task(); } catch (error) { status(error.message, true); }
-  finally { busy = false; document.querySelectorAll("button").forEach((button) => { button.disabled = false; }); }
+  controls();
+  try { await task(); } catch (error) {
+    if (error.status === 423) serverBusy = true;
+    status(error.message, true);
+  }
+  finally { busy = false; controls(); }
 }
 function displayRecords() {
   const query = $("search").value.trim().toLocaleLowerCase();
@@ -68,6 +140,7 @@ async function refresh() {
 }
 function canDiscard() { return !dirty || window.confirm("Discard this unsent draft and select another record?"); }
 function openRecord(record, creating = false) {
+  sessionStorage.removeItem(storageKey);
   current = { ...record, creating, base: snapshot.revision };
   $("edit").reset();
   $("edit").hidden = false; $("empty").hidden = true;
@@ -148,13 +221,12 @@ $("login").addEventListener("submit", (event) => {
     ({ csrf } = await api("login", { password: new FormData(event.target).get("password") }));
     event.target.reset(); $("login").hidden = true; $("workspace").hidden = false; $("logout").hidden = false;
     status("Loading the latest archive…");
-    if (!snapshot) await refresh();
-    status("Choose a record or add a new one. Submitted changes await review before publication.");
+    await initialize();
   });
 });
 $("logout").addEventListener("click", () => {
   if (!canDiscard()) return;
-  perform(async () => { await api("logout", {}); dirty = false; location.reload(); });
+  perform(async () => { await api("logout", {}); sessionStorage.removeItem(storageKey); dirty = false; location.reload(); });
 });
 $("refresh").addEventListener("click", () => perform(async () => {
   await refresh(); proposal = null; $("preview").hidden = true;
@@ -162,7 +234,7 @@ $("refresh").addEventListener("click", () => perform(async () => {
 }));
 $("search").addEventListener("input", () => displayRecords());
 $("records").addEventListener("change", () => {
-  if (busy || !canDiscard()) { $("records").value = current?.path || ""; return; }
+  if (busy || serverBusy || !canDiscard()) { $("records").value = current?.path || ""; return; }
   openRecord(snapshot.records.find((record) => record.path === $("records").value));
 });
 for (const type of ["region", "subregion", "village"]) $("new-" + type).addEventListener("click", () => {
@@ -170,8 +242,8 @@ for (const type of ["region", "subregion", "village"]) $("new-" + type).addEvent
   if (type !== "region" && !snapshot.records.some((r) => r.type === "region")) return status("Add a region first.", true);
   openRecord({ type }, true);
 });
-$("region").addEventListener("change", () => { fillSubregions(); invalidate(); });
-$("edit").addEventListener("input", () => { invalidate(); renderInfo(); });
+$("region").addEventListener("change", () => { fillSubregions(); invalidate(); persistDraft(); });
+$("edit").addEventListener("input", () => { invalidate(); renderInfo(); persistDraft(); });
 $("edit").addEventListener("submit", (event) => {
   event.preventDefault(); perform(async () => {
     const request = { base: current.base, change: changeFromForm() };
@@ -179,21 +251,26 @@ $("edit").addEventListener("submit", (event) => {
     // Keep exactly the data previewed, even if the form changes while the request runs.
     if (JSON.stringify(request.change) !== JSON.stringify(changeFromForm())) return status("The draft changed during preview. Preview it again.");
     proposal = { ...request, previewHash: preview.previewHash, submissionId: crypto.randomUUID() };
-    showChanges(preview.changes); status("Review the changes below, then submit them for review.");
+    showChanges(preview.changes); persistDraft(); status("Review the changes below, then save them.");
   });
 });
 $("submit").addEventListener("click", () => perform(async () => {
   if (!proposal) return;
   const submitted = proposal;
-  status("Submitting your proposal…");
+  pending = submitted; persistDraft();
+  status("Saving and publishing your changes…");
   const result = await api("submit", submitted);
-  if (proposal === submitted) { dirty = false; proposal = null; $("preview").hidden = true; }
-  status(`Pull request #${result.number} submitted. It will go live after it is merged and deployed. `);
-  const link = document.createElement("a"); link.textContent = "View pull request"; link.href = result.url; link.target = "_blank"; link.rel = "noopener noreferrer";
-  $("status").append(link);
+  await saved(result);
 }));
 window.addEventListener("beforeunload", (event) => { if (dirty) { event.preventDefault(); event.returnValue = ""; } });
 try {
   ({ csrf } = await api("session")); $("workspace").hidden = false; $("logout").hidden = false;
-  await perform(refresh);
+  await perform(initialize);
 } catch (error) { $("login").hidden = false; status(error.message); }
+setInterval(async () => {
+  if (busy || polling || $("workspace").hidden) return;
+  polling = true;
+  try { await checkProcessing(); }
+  catch (error) { serverBusy = true; controls(); status("Could not check save status. Reconnecting; your draft is kept.", true); }
+  finally { polling = false; }
+}, 2000);

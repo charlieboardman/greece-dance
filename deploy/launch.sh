@@ -19,7 +19,7 @@ set_editor() {
   rm -f "$tmp"
 }
 trap 'echo "Setup stopped. Fix the reported error and rerun ./setup.sh; saved credentials will be reused." >&2' ERR
-systemctl stop greece-dance-update.timer
+systemctl disable --now greece-dance-update.timer
 set_editor false
 echo 'Deploying the latest release and running checks. This can take a few minutes.'
 echo 'To follow progress in another SSH session: journalctl -u greece-dance-update.service -f'
@@ -59,6 +59,6 @@ if ! curl --fail --silent --show-error --retry 10 --retry-connrefused --retry-de
   exit 1
 fi
 systemctl enable greece-dance.service
-systemctl enable --now greece-dance-update.timer
+echo 'Code upgrades are manual: sudo ./upgrade.sh. Content-only updates: sudo ./update-info.sh.'
 echo "Map ready: https://$hostname/"
 if [[ "$enable_editor" == true ]]; then echo "Editor ready: https://$hostname/editor/"; fi

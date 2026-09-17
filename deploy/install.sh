@@ -6,7 +6,7 @@ for command in podman podman-compose python3 git curl flock nginx; do command -v
 source_directory=$(dirname "$(readlink -f "$0")")
 # Do not replace deployment scripts while the old updater is using them.
 if systemctl cat greece-dance-update.timer >/dev/null 2>&1; then
-  systemctl stop greece-dance-update.timer
+  systemctl disable --now greece-dance-update.timer
 fi
 if systemctl is-active --quiet greece-dance-update.service; then
   echo 'Waiting for the current deployment to finish before installing service definitions.'
@@ -16,10 +16,11 @@ id greece-dance >/dev/null 2>&1 || useradd --system --home-dir /var/lib/greece-d
 id greece-deploy >/dev/null 2>&1 || useradd --system --create-home --home-dir /var/lib/greece-deploy --shell /usr/sbin/nologin greece-deploy
 install -d -m 0755 -o greece-deploy -g greece-deploy /srv/greece-dance /srv/greece-dance/releases
 install -d -m 0700 -o greece-dance -g greece-dance /var/lib/greece-dance-editor
+install -d -m 0700 -o greece-dance -g greece-dance /var/lib/greece-dance-content
 install -d -m 0750 -o root -g greece-dance /etc/greece-dance
 # Deployment config is separate from app secrets and readable by the deploy account.
 install -d -m 0755 /usr/local/lib/greece-dance/deploy /usr/local/libexec
-for file in common.sh upgrade.sh rollback.sh runtime.sh; do install -m 0755 "$source_directory/$file" /usr/local/lib/greece-dance/deploy/; done
+for file in common.sh upgrade.sh rollback.sh runtime.sh update-info.sh; do install -m 0755 "$source_directory/$file" /usr/local/lib/greece-dance/deploy/; done
 install -m 0755 "$source_directory/restart.sh" /usr/local/libexec/greece-dance-restart
 for file in Containerfile containerignore compose.yaml; do install -m 0644 "$source_directory/$file" /usr/local/lib/greece-dance/deploy/; done
 for file in greece-dance.service greece-dance-update.service greece-dance-update.timer; do install -m 0644 "$source_directory/$file" /etc/systemd/system/; done

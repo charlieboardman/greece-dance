@@ -1,7 +1,7 @@
 # Greek Folk Dance Research Map
 
 An interactive bilingual atlas with a folder-based research archive and a
-password-protected editor that proposes changes through GitHub pull requests.
+password-protected editor that records changes in GitHub before publishing them.
 The map uses MapLibre, bundled relief basemaps, and an OpenStreetMap boundary view.
 
 ## Run locally
@@ -18,8 +18,9 @@ Open <http://localhost:8000/>. The map works immediately with the editor disable
 Local content edits appear after refreshing the map. The editor lives at
 `/editor/`; enabling it requires a password hash, session secret, and a GitHub
 App installed on the target repository. See [deployment setup](deploy/README.md).
-If enabled locally, submissions create real proposal branches and PRs in the
-configured repository. Automated tests use temporary local remotes instead.
+If enabled locally, submissions push real commits directly to the configured
+repository's canonical branch and publish accepted content. Automated tests use
+temporary local remotes instead. Linux `flock` (util-linux) is required for editing.
 
 ## Content and editing
 
@@ -30,8 +31,11 @@ village `info.en.md` and `info.el.md` contain the dances and research notes.
 Read the [complete folder schema and editing guide](content/README.md).
 
 Both direct file edits and web editor submissions meet in GitHub. `main` is the
-canonical accepted version; unmerged PRs are proposals. The web editor never
-modifies the deployed app or automatically merges its PRs.
+canonical accepted version. The editor makes no per-edit branches or PRs: it pushes
+a content-only commit, fetches accepted `main`, validates and publishes `info/`.
+The code image stays read-only. Live content lives on a separate persistent mount
+and refreshes without an app rebuild or restart. For manual content changes use
+`sudo ./update-info.sh`; `sudo ./upgrade.sh` performs a full code deployment.
 
 ```bash
 npm run validate
@@ -40,7 +44,7 @@ npm run smoke
 ```
 
 Tests cover the legacy migration, folder schema, authenticated editor API,
-content-only Git proposals, conflicting edits, partial-failure retries, and
+content-only Git commits, conflicting edits, partial-failure retries, and
 release/rollback behavior. Deployment tests use local fixture repositories and
 service hooks. `npm run smoke` checks the actual app and map byte-range serving.
 
@@ -49,7 +53,8 @@ service hooks. `npm run smoke` checks the actual app and map byte-range serving.
 [Deployment instructions](deploy/README.md) cover Ubuntu/Debian droplets. Run
 `sudo ./setup.sh --hostname YOUR_DOMAIN_OR_IPV4` from a checkout to install
 Podman Compose, build a tested Node.js 24 app image, configure the GitHub App,
-set up HTTPS and renewal, and enable the editor and automatic updates. An IPv4 address uses sslip.io, so a
+set up HTTPS and renewal, and enable the editor. Code deployments remain manual;
+setup disables the legacy automatic deployment timer. An IPv4 address uses sslip.io, so a
 purchased domain is optional. GitHub App creation and key transfer are guided
 manual steps. Existing credentials are reused when retrying.
 

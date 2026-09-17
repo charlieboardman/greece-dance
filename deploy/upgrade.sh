@@ -3,6 +3,9 @@ set -Eeuo pipefail
 source "$(dirname "$(readlink -f "$0")")/common.sh"
 : "${DEPLOY_REPOSITORY:?Set DEPLOY_REPOSITORY to the canonical Git remote.}"
 script_directory=$(dirname "$(readlink -f "$0")")
+publish_content() {
+  GREECE_DANCE_IMAGE=$1 "${DEPLOY_CONTENT_HOOK:-$script_directory/update-info.sh}"
+}
 git check-ref-format "refs/heads/$DEPLOY_BRANCH" >/dev/null
 repository="$DEPLOY_ROOT/repository.git"
 # Retain the existing read-only Git SSH identity without giving it Podman access.
@@ -19,6 +22,7 @@ repo_git --git-dir="$repository" fetch --no-tags "$DEPLOY_REPOSITORY" "+refs/hea
 revision=$(repo_git --git-dir="$repository" rev-parse "refs/remotes/origin/$DEPLOY_BRANCH")
 previous=$(readlink -f "$DEPLOY_ROOT/current" || true)
 if valid_release "$previous" && [[ -f "$previous/.container-image" && "$(cat "$previous/.release-sha")" == "$revision" ]] && podman image exists "$(cat "$previous/.container-image")"; then
+  publish_content "$(cat "$previous/.container-image")"
   echo "Already deployed: $revision"
   exit 0
 fi
@@ -78,6 +82,7 @@ if [[ -e "$release" ]]; then
   rm -rf -- "$release"
 fi
 mv "$staging" "$release"
+publish_content "$(cat "$release/.container-image")"
 switch_link "$release" current
 switched=true
 "$DEPLOY_RESTART_HOOK"

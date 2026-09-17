@@ -60,6 +60,9 @@ printf 'sha256:%064d\\n' 1 > "$output"
   const hook = path.join(root, "restart");
   await writeFile(hook, '#!/usr/bin/env bash\nset -eu\nif [[ -f "$DEPLOY_ROOT/current/fail-start" ]]; then exit 1; fi\nif [[ -f "$DEPLOY_ROOT/current/wrong-health" ]]; then echo wrong > "$DEPLOY_ROOT/running-sha"; else cat "$DEPLOY_ROOT/current/.release-sha" > "$DEPLOY_ROOT/running-sha"; fi\necho restart >> "$DEPLOY_ROOT/restarts"\n');
   await chmod(hook, 0o755);
+  const contentHook = path.join(root, "publish-content");
+  await writeFile(contentHook, '#!/usr/bin/env bash\nset -eu\n[[ "${FAIL_CONTENT:-}" != 1 ]]\necho content >> "$DEPLOY_ROOT/content-updates"\n');
+  await chmod(contentHook, 0o755);
   const health = createServer(async (_req, res) => {
     let revision = ""; try { revision = (await readFile(path.join(deploy, "running-sha"), "utf8")).trim(); } catch {}
     res.setHeader("Content-Type", "application/json"); res.end(JSON.stringify({ ok: true, revision }));
@@ -68,7 +71,7 @@ printf 'sha256:%064d\\n' 1 > "$output"
   t.after(() => new Promise((resolve) => { health.closeAllConnections(); health.close(resolve); }));
   const env = { ...process.env, DEPLOY_CONFIG: path.join(root, "absent.env"), DEPLOY_ROOT: deploy,
     PATH: `${bin}:${process.env.PATH}`,
-    DEPLOY_REPOSITORY: remote, DEPLOY_RESTART_HOOK: hook, DEPLOY_HEALTH_ATTEMPTS: "1",
+    DEPLOY_REPOSITORY: remote, DEPLOY_RESTART_HOOK: hook, DEPLOY_CONTENT_HOOK: contentHook, DEPLOY_HEALTH_ATTEMPTS: "1",
     DEPLOY_HEALTH_URL: `http://127.0.0.1:${health.address().port}/api/health` };
   const update = fileURLToPath(new URL("../deploy/upgrade.sh", import.meta.url));
   const rollback = fileURLToPath(new URL("../deploy/rollback.sh", import.meta.url));
@@ -88,6 +91,10 @@ printf 'sha256:%064d\\n' 1 > "$output"
   assert.equal(await readlink(path.join(deploy, "current")), path.join(deploy, "releases", `podman-${first}`));
   assert.equal((await stat(path.join(deploy, "releases", `podman-${first}`))).mode & 0o777, 0o755, "The separate runtime account can traverse the release directory.");
   result = await run(update, env); assert.equal(result.code, 0, result.output); assert.match(result.output, /Already deployed/u);
+  assert.equal((await readFile(path.join(deploy, "restarts"), "utf8")).trim(), "restart");
+  assert.equal((await readFile(path.join(deploy, "content-updates"), "utf8")).trim().split("\n").length, 2);
+  result = await run(update, { ...env, FAIL_CONTENT: "1" });
+  assert.notEqual(result.code, 0);
   assert.equal((await readFile(path.join(deploy, "restarts"), "utf8")).trim(), "restart");
   await writeFile(path.join(clone, "invalid"), "bad content"); await publish();
   result = await run(update, env); assert.notEqual(result.code, 0, result.output);

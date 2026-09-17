@@ -126,6 +126,9 @@ upsert_env() {
 }
 
 valid_hash() { [[ "${1:-}" =~ ^scrypt:[a-f0-9]{32}:[a-f0-9]{128}$ ]]; }
+if [[ -z "$(env_value LIVE_INFO_DIR)" ]]; then
+  upsert_env LIVE_INFO_DIR /var/lib/greece-dance-content
+fi
 prompt() {
   local value=""
   read -r -p "$1" value
@@ -176,7 +179,8 @@ GitHub App (do this in a browser on your laptop, not on the droplet)
    - GitHub App name: greece-dance-editor (must be unique on GitHub)
    - Homepage URL: $(env_value APP_ORIGIN)
    - Uncheck Webhook → Active
-   - Repository permissions: Contents Read and write, Pull requests Read and write
+   - Repository permissions: Contents Read and write
+   - Allow this App to push to the canonical branch under your repository rules
    - Create GitHub App
    - Generate a private key (downloads a .pem to your laptop)
    - Copy the App ID from the app settings page

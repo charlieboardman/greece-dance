@@ -59,7 +59,8 @@ test("launch provisions HTTPS before enabling the editor and is rerunnable", asy
     assert.match(await readFile(config, "utf8"), /^SESSION_SECRET=preserved$/mu);
   }
   const log = await readFile(env.TEST_LOG, "utf8");
-  assert.ok(log.indexOf("certbot --nginx") < log.indexOf("enable --now greece-dance-update.timer"));
+  assert.match(log, /disable --now greece-dance-update.timer/u);
+  assert.doesNotMatch(log, /enable --now greece-dance-update.timer/u);
   assert.match(log, /enable --now certbot.timer/u);
 });
 

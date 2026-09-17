@@ -3,7 +3,9 @@
 `info/` is the sole live content source. JSON stores names and relationships;
 Markdown stores each village's dances and research notes. There is no database
 or separate dance entity. Files may be edited directly or through `/editor/`,
-which proposes content-only changes in GitHub PRs.
+which pushes content-only commits to GitHub's canonical branch and publishes them.
+The running map reads a separately mounted, validated copy of accepted `info/`;
+application images do not need rebuilding for content edits.
 
 ```text
 info/
@@ -88,7 +90,19 @@ region must remain.
 Submissions use the revision the form originally loaded, even after refreshing
 the archive. Conflicts include the edited record and its source/destination
 region/subregion metadata. Unrelated edits are retained. Errors preserve the form,
-and a partially pushed submission can be retried without duplicate commits or PRs.
+and a partially pushed submission can be retried without duplicate commits.
+Each save carries a durable submission ID. The editor checks shared processing
+status on load and while open, and retains the draft and ID in tab session storage
+across reloads. Only one save/publication runs at a time. A failed publication after
+a successful push is reported as saved to GitHub with publication pending.
+
+The publisher fetches the canonical branch back from GitHub, extracts only its
+`info/` Git tree into a temporary directory, validates the complete archive, and
+atomically switches the live snapshot. No working-tree files are copied. The map
+reloads a changed snapshot on the next archive request; existing browser tabs need
+refreshing. Manual content pushes are published with `sudo ./update-info.sh` (or
+the full `sudo ./upgrade.sh`). Neither the editor nor the content update command
+rebuilds or restarts the application container.
 
 ## Markdown and file rules
 
@@ -120,4 +134,7 @@ Markdown bytes. Subregion ID collisions are disambiguated with the original
 region ID. The live loader accepts only the current flat schema.
 
 Existing unmerged proposals using old paths must be recreated against the new
-archive before merging. Reload/reopen the editor after the schema deployment.
+archive before merging. Old PRs are not automatically merged by the editor.
+Reload/reopen the editor after a schema deployment. Changes to the content format
+must remain compatible with the deployed application or be coordinated with a code
+upgrade; ordinary notes and metadata edits need no code deployment.

@@ -11,7 +11,8 @@
 </head>
 <body>
   <header><a href="/">← Back to the map</a><h1>Edit the dance archive</h1><button id="logout" hidden>Log out</button></header>
-  <p class="intro">Propose additions and corrections to the archive. Changes go live after review and publication.</p>
+  <p class="intro">Edit the archive. Saves are recorded in GitHub before appearing on the map.</p>
+  <p id="processing" role="status" hidden><span class="spinner" aria-hidden="true"></span> A change is processing. Please wait…</p>
   <div id="status" role="status" aria-live="polite"></div>
   <form id="login" class="card" hidden>
     <h2>Editor login</h2>
@@ -54,7 +55,7 @@
       <section id="preview" hidden>
         <h2>Review your changes</h2>
         <div id="changes"></div>
-        <button id="submit">Submit pull request</button>
+        <button id="submit" disabled>Save changes</button>
       </section>
     </section>
   </main>

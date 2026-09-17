@@ -14,9 +14,12 @@ services:
     environment:
       HOST: 127.0.0.1
       PORT: "${GREECE_DANCE_PORT:-8000}"
+      LIVE_INFO_DIR: /var/lib/greece-dance-content
     volumes:
-      - ${GREECE_DANCE_CONFIG_DIR:-/etc/greece-dance}:/etc/greece-dance:ro,Z
-      - ${GREECE_DANCE_STATE_DIR:-/var/lib/greece-dance-editor}:/var/lib/greece-dance-editor:rw,Z
+      # Shared SELinux labels: the updater and app use these mounts concurrently.
+      - ${GREECE_DANCE_CONFIG_DIR:-/etc/greece-dance}:/etc/greece-dance:ro,z
+      - ${GREECE_DANCE_STATE_DIR:-/var/lib/greece-dance-editor}:/var/lib/greece-dance-editor:rw,z
+      - ${GREECE_DANCE_CONTENT_DIR:-/var/lib/greece-dance-content}:/var/lib/greece-dance-content:rw,z
     tmpfs:
       - /tmp:rw,nosuid,nodev,mode=1777
     stop_grace_period: 15s

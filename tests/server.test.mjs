@@ -8,7 +8,7 @@ import { createApp } from "../server/app.js";
 import { hashPassword } from "../server/auth.js";
 
 async function fixture(t, options = {}) {
-  const editor = { snapshot: async () => ({ revision: "a".repeat(40), records: [] }), preview: async (body) => ({ accepted: body }), submit: async () => ({ number: 1 }) };
+  const editor = { status: async () => ({ busy: false, operation: null }), snapshot: async () => ({ revision: "a".repeat(40), records: [] }), preview: async (body) => ({ accepted: body }), submit: async () => ({ state: "completed" }) };
   const app = await createApp({ editor, passwordHash: await hashPassword("correct horse battery"),
     sessionSecret: "s".repeat(64), origin: "http://editor.test", ...options });
   const server = app.listen(0, "127.0.0.1"); await once(server, "listening");
@@ -30,6 +30,7 @@ test("public archive, map assets and byte ranges work; private files are not ser
 test("editor requires login, same-origin JSON requests and a session CSRF token", async (t) => {
   const { request } = await fixture(t);
   assert.equal((await request("/api/editor/archive")).status, 401);
+  assert.equal((await request("/api/editor/status")).status, 401);
   const login = { method: "POST", headers: { Origin: "http://editor.test", "Content-Type": "application/json" }, body: JSON.stringify({ password: "correct horse battery" }) };
   assert.equal((await request("/api/editor/login", { ...login, headers: { ...login.headers, Origin: "https://attacker.test" } })).status, 403);
   assert.equal((await request("/api/editor/login", { ...login, body: JSON.stringify({ password: "wrong" }) })).status, 401);
@@ -39,6 +40,7 @@ test("editor requires login, same-origin JSON requests and a session CSRF token"
   assert.match(response.headers.get("set-cookie"), /HttpOnly/u); assert.match(response.headers.get("set-cookie"), /SameSite=Strict/u);
   const { csrf } = await response.json();
   assert.equal((await request("/api/editor/archive", { headers: { Cookie: cookie } })).status, 200);
+  assert.deepEqual(await (await request("/api/editor/status", { headers: { Cookie: cookie } })).json(), { busy: false, operation: null });
   const mutation = { method: "POST", headers: { ...login.headers, Cookie: cookie }, body: "{}" };
   assert.equal((await request("/api/editor/preview", mutation)).status, 403);
   mutation.headers["X-CSRF-Token"] = csrf;

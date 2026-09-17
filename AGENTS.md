@@ -10,8 +10,12 @@ Read `content/README.md` before editing archive content.
 - Do not invent separate dance entities or infer shared dances from names.
 - Do not change the legacy migration fixture when adding or correcting content.
 - Run `npm run validate` and relevant tests. Use Node.js 24 LTS.
-- The map's release and the editor's Git workspace are separate. Web edits must
-  produce content-only proposal branches/PRs; never mutate the live release.
+- Code releases, the editor's partial Git workspace, and published content are
+  separate. Web edits push content-only commits directly to the canonical branch
+  (no PRs), then fetch accepted content back before publication. Never mutate the
+  code release. Editor and CLI must share publication code and a process-safe lock.
+- Publish complete validated snapshots atomically; preserve the last live archive
+  on failure. setup.sh must be rerunnable without losing credentials or state.
 - Keep conflict detection based on the version the editor loaded. Preserve user
   input on submission errors and idempotent retry after a partial push.
 - Keep credentials outside Git and never expose them in command arguments,

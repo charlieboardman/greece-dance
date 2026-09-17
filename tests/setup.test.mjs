@@ -58,6 +58,7 @@ test("setup.sh stores the GitHub App key and editor secrets without printing the
   assert.match(config, /^SESSION_SECRET=[a-f0-9]{64}$/mu);
   assert.match(config, /^APP_ORIGIN=https:\/\/dances\.example\.org$/mu);
   assert.match(config, /^EDITOR_ENABLED=false$/mu);
+  assert.match(config, /^LIVE_INFO_DIR=\/var\/lib\/greece-dance-content$/mu);
   assert.match(await readFile(path.join(etc, "github-app.pem"), "utf8"), /BEGIN RSA PRIVATE KEY/u);
   assert.match(await readFile(nginx, "utf8"), /server_name dances\.example\.org;/u);
 });
@@ -83,6 +84,23 @@ test("setup.sh can enable the editor later without asking for the key again", as
   result = await run(["--skip-install", "--enable-editor"], env);
   assert.equal(result.code, 0, result.output);
   assert.match(await readFile(path.join(etc, "app.env"), "utf8"), /^EDITOR_ENABLED=true$/mu);
+});
+
+test("setup migrates old configuration once and preserves credentials on repeated runs", async t => {
+  const { etc, env, args } = await fixture(t);
+  const configPath = path.join(etc, "app.env");
+  await writeFile(configPath, (await readFile(configPath, "utf8")).replace(/^LIVE_INFO_DIR=.*\n/mu, ""));
+  let result = await run(args, env);
+  assert.equal(result.code, 0, result.output);
+  const initial = await readFile(configPath, "utf8");
+  const key = await readFile(path.join(etc, "github-app.pem"), "utf8");
+  for (let attempt = 0; attempt < 2; attempt++) {
+    result = await run(["--skip-install"], env);
+    assert.equal(result.code, 0, result.output);
+    assert.equal(await readFile(configPath, "utf8"), initial);
+    assert.equal(await readFile(path.join(etc, "github-app.pem"), "utf8"), key);
+  }
+  assert.equal((initial.match(/^LIVE_INFO_DIR=/gmu) || []).length, 1);
 });
 
 test("setup.sh rejects a file that is not a private key", async (t) => {
