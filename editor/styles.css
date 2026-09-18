@@ -38,6 +38,15 @@ pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #f3efe7; paddi
 #status:not(:empty) { padding: 16px; margin: 20px 0; border: 1px solid #8daba0; background: #e3efe6; overflow-wrap: anywhere; }
 #status.error { border-color: #b7715f; background: #fae8df; }
 :focus-visible { outline: 3px solid #0d5eaf; outline-offset: 3px; }
+#location-lookup { border: 1px solid #c7cec5; padding: 14px; margin-bottom: 20px; }
+#location-lookup p { margin: 8px 0; overflow-wrap: anywhere; }
+#lookup-status:empty { display: none; }
+#lookup-results { list-style: none; margin: 12px 0; padding: 0; }
+#lookup-results:empty { display: none; }
+#lookup-results li { padding: 14px 0; border-top: 1px solid #d3d9d0; overflow-wrap: anywhere; }
+#lookup-results p { font-size: .9rem; }
+.lookup-actions { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+#location-lookup .check { margin: 14px 0 0; }
 @media (max-width: 800px) { main { grid-template-columns: 1fr; } #records { height: 180px; } }
 @media (max-width: 500px) { .pair { grid-template-columns: 1fr; gap: 0; } body { padding: 14px; } .card { padding: 18px; } }
 /* Busy status is shared across editor visitors; drafts remain in place. */

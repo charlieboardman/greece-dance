@@ -56,6 +56,42 @@ test("login attempts are rate limited", async (t) => {
   assert.equal((await request("/api/editor/login", init)).status, 429);
 });
 
+test("location lookup is authenticated, CSRF-protected, validates context and never submits content", async t => {
+  const records = [
+    { type: "region", path: "regions/pieria", metadata: { names: { en: "Pieria" } } },
+    { type: "subregion", path: "subregions/elsewhere", metadata: { region: "other" } }
+  ];
+  let calls = 0;
+  const { request } = await fixture(t, {
+    editor: { snapshot: async () => ({ records }), submit: () => assert.fail("Lookup must not save") },
+    locationLookup: async (input, passedRecords) => {
+      calls++; assert.equal(input.query, "Elatohori"); assert.equal(input.region, "pieria");
+      assert.deepEqual(passedRecords, records);
+      return { candidates: [], wikipediaSearched: true, warnings: [] };
+    }
+  });
+  const headers = { Origin: "http://editor.test", "Content-Type": "application/json" };
+  const body = JSON.stringify({ query: "Elatohori", region: "pieria" });
+  assert.equal((await request("/api/editor/find-location", { method: "POST", headers, body })).status, 401);
+  const login = await request("/api/editor/login", { method: "POST", headers, body: JSON.stringify({ password: "correct horse battery" }) });
+  headers.Cookie = login.headers.get("set-cookie").split(";")[0];
+  const { csrf } = await login.json();
+  assert.equal((await request("/api/editor/find-location", { method: "POST", headers, body })).status, 403);
+  headers["X-CSRF-Token"] = csrf;
+  for (const input of [{}, { query: "Elatohori", region: "missing" }, { query: "Elatohori", region: "pieria", subregion: "elsewhere" },
+    { query: "a".repeat(201), region: "pieria" }, { query: "Elatohori", region: "pieria", includeWikipedia: "yes" }]) {
+    assert.equal((await request("/api/editor/find-location", { method: "POST", headers, body: JSON.stringify(input) })).status, 400);
+  }
+  assert.equal(calls, 0);
+  const response = await request("/api/editor/find-location", { method: "POST", headers, body });
+  assert.equal(response.status, 200);
+  assert.equal(response.headers.get("cache-control"), "no-store");
+  assert.deepEqual(await response.json(), { candidates: [], wikipediaSearched: true, warnings: [] });
+  assert.equal(calls, 1);
+  assert.equal((await request("/editor/location-lookup.js")).status, 200);
+  assert.equal((await request("/server/location-lookup.js")).status, 404);
+});
+
 
 test("public files work inside hidden deployment staging directories", async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), ".staging-"));

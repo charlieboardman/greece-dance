@@ -1,4 +1,5 @@
 import { newPlacePath, recordId, hierarchyRecords, availableSubregions } from "./places.js";
+import { mountLocationLookup } from "./location-lookup.js";
 
 const $ = (id) => document.getElementById(id);
 let csrf = "";
@@ -10,6 +11,7 @@ let busy = false;
 let serverBusy = true;
 let pending = null;
 let polling = false;
+let locationLookup = null;
 const storageKey = "dance-editor-draft-v1";
 const villageLocationStorageKey = "national-dance-ministry-map-editor-last-village-location-v1";
 const fields = ["name-en", "name-el", "color", "latitude", "longitude", "region", "subregion", "info-en", "info-el", "delete"];
@@ -63,6 +65,7 @@ function controls() {
   });
   $("processing").hidden = !serverBusy;
   $("submit").textContent = busy || serverBusy ? "Please wait…" : "Save changes";
+  locationLookup?.sync();
 }
 async function saved(operation) {
   const recordPath = pending?.change.path;
@@ -99,10 +102,10 @@ async function initialize() {
 
 function status(message, error = false) { $("status").textContent = message; $("status").classList.toggle("error", error); }
 function invalidate() { proposal = null; pending = null; $("preview").hidden = true; dirty = true; }
-async function api(endpoint, body) {
+async function api(endpoint, body, signal) {
   const response = await fetch(`/api/editor/${endpoint}`, {
     method: body === undefined ? "GET" : "POST", credentials: "same-origin",
-    signal: AbortSignal.timeout(body === undefined ? 15000 : 120000),
+    signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(35000)]) : AbortSignal.timeout(body === undefined ? 15000 : 120000),
     headers: { "Content-Type": "application/json", "X-CSRF-Token": csrf },
     ...(body === undefined ? {} : { body: JSON.stringify(body) })
   });
@@ -264,7 +267,14 @@ for (const type of ["region", "subregion", "village"]) $("new-" + type).addEvent
   openRecord(type === "village" ? { type, ...lastVillageLocation() } : { type }, true);
 });
 $("region").addEventListener("change", () => { fillSubregions(); invalidate(); persistDraft(); });
-$("edit").addEventListener("input", () => { invalidate(); renderInfo(); persistDraft(); });
+$("edit").addEventListener("input", event => {
+  if (fields.includes(event.target.id)) { invalidate(); renderInfo(); persistDraft(); }
+});
+locationLookup = mountLocationLookup({
+  request: (body, signal) => api("find-location", body, signal),
+  context: () => ({ query: $("name-en").value.trim(), region: $("region").value, subregion: $("subregion").value || null }),
+  editable: () => current?.type === "village" && !busy && !serverBusy && !$("delete").checked && !$("workspace").hidden
+});
 $("edit").addEventListener("submit", (event) => {
   event.preventDefault(); perform(async () => {
     const request = { base: current.base, change: changeFromForm() };

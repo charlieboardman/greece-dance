@@ -48,6 +48,46 @@ content-only Git commits, conflicting edits, partial-failure retries, and
 release/rollback behavior. Deployment tests use local fixture repositories and
 service hooks. `npm run smoke` checks the actual app and map byte-range serving.
 
+### Optional village location lookup
+
+In the village editor, select a region, enter an English place name, and click
+**Find location**. The lookup searches Wikidata, including spelling variants,
+then falls back to Wikipedia when it has no usable candidates. **Search more
+matches, including Wikipedia** also checks Wikipedia when the first suggestions
+are not the right place. Wikipedia article coordinates, language links and
+English/Greek disambiguation links are read through its API; no AI agent or
+page scraping is involved. There is no GNS integration or new package/API key.
+
+Only supported geographic place types in the region's approximate search area
+are suggested. Search windows include historical areas outside modern Greece;
+they are deliberately generous, not administrative boundaries. Existing village
+locations in the selected subregion/region help rank suggestions, but do not
+establish that a match is correct. Check the description, source and **View on
+map** link, then explicitly choose **Use these coordinates**. A single result
+is never automatically applied. The English name and notes stay unchanged;
+using the suggested Greek name is optional and defaults off if one is already
+entered. Greek names can include administrative qualifiers or modern names in
+place of historical ones. All fields remain editable.
+
+The editor calls its authenticated, CSRF-protected server endpoint; the server
+contacts only Wikidata and English/Greek Wikipedia. Requests have a 25-second
+overall deadline, a 28-request budget, bounded result/link traversal and a
+short-lived in-memory cache. Provider throttling is respected. Lookup errors
+preserve the form, and manual entry, saving and publication never depend on a
+lookup service. Opening **View on map** is an optional external OpenStreetMap
+link, not another automatic lookup provider.
+
+The feature lives in `editor/location-lookup.js` (UI) and
+`server/location-lookup.js` (providers, filters and ranking). Unit/API tests run
+with `npm test`. With Playwright available, run the isolated browser regression:
+
+```bash
+PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs node tests/location-lookup-browser.mjs
+```
+
+It uses local fixtures and mocked provider responses, not live geocoding or
+production content. The general editor browser test is `tests/editor-browser.mjs`.
+
 ## Deployment
 
 [Deployment instructions](deploy/README.md) cover Ubuntu/Debian droplets. Run

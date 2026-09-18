@@ -6,10 +6,11 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 import { loadContent, ContentError } from "../lib/content.js";
 import { SessionStore, verifyPassword } from "./auth.js";
+import { createLocationLookup, LocationLookupError } from "./location-lookup.js";
 
 export async function createApp({ root = fileURLToPath(new URL("../", import.meta.url)), editor = null,
   passwordHash = "", sessionSecret = "", origin = "http://localhost:8000", production = false,
-  revision = "development", loginLimit = 10, published = null } = {}) {
+  revision = "development", loginLimit = 10, published = null, locationLookup = createLocationLookup() } = {}) {
   const content = published ? (await published.snapshot()).content : await loadContent(path.join(root, "info"));
   const app = express();
   app.disable("x-powered-by");
@@ -74,6 +75,23 @@ export async function createApp({ root = fileURLToPath(new URL("../", import.met
     router.use(rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: "draft-8", legacyHeaders: false,
       message: { error: "Too many editor requests. Try again in a minute." } }));
     router.get("/content", async (_req, res) => res.json(await editor.snapshot()));
+    router.post("/find-location", rateLimit({ windowMs: 60_000, limit: 10, standardHeaders: "draft-8", legacyHeaders: false,
+      message: { error: "Too many location searches. Wait a minute, or enter the location manually." } }), async (req, res) => {
+      const { query, region, subregion = null, includeWikipedia = false } = req.body || {};
+      if (typeof query !== "string" || !query.trim() || query.length > 200 || typeof region !== "string" ||
+          (subregion !== null && typeof subregion !== "string") || typeof includeWikipedia !== "boolean") {
+        throw new ContentError("Enter a place name and select its region before searching.", 400);
+      }
+      const { records } = await editor.snapshot();
+      if (!records.some(r => r.type === "region" && r.path === `regions/${region}`) ||
+          (subregion && !records.some(r => r.type === "subregion" && r.path === `subregions/${subregion}` && r.metadata.region === region))) {
+        throw new ContentError("The selected region or subregion is unavailable. Refresh map content before searching.", 400);
+      }
+      try { res.json(await locationLookup({ query, region, subregion, includeWikipedia }, records)); }
+      catch (error) {
+        throw new ContentError(error instanceof LocationLookupError ? error.message : "Location lookup is unavailable. Enter the details manually or retry shortly.", 503);
+      }
+    });
     router.post("/preview", async (req, res) => res.json(await editor.preview(req.body)));
     router.post("/submit", async (req, res) => res.json(await editor.submit(req.body)));
   }
