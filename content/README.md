@@ -1,4 +1,4 @@
-# Editing the archive
+# Editing the National Dance Ministry Map
 
 `info/` is the sole live content source. JSON stores names and relationships;
 Markdown stores each village's dances and research notes. There is no database
@@ -79,7 +79,7 @@ To move a village, edit only its `region` and `subregion` fields. Keep the direc
 and Markdown files in place. The web editor shows a required Region dropdown and
 an optional Subregion dropdown filtered by region, with a None option. These
 fields appear when creating and editing villages. English names appear throughout
-the editor; IDs are internal. The archive tree is reconstructed from references.
+the editor; IDs are internal. The map content tree is reconstructed from references.
 
 Moving a subregion with villages through direct file edits requires updating its
 villages' region references in the same commit. The editor validates the entire
@@ -88,7 +88,7 @@ record directory. Regions/subregions must be empty before deletion. At least one
 region must remain.
 
 Submissions use the revision the form originally loaded, even after refreshing
-the archive. Conflicts include the edited record and its source/destination
+the map content. Conflicts include the edited record and its source/destination
 region/subregion metadata. Unrelated edits are retained. Errors preserve the form,
 and a partially pushed submission can be retried without duplicate commits.
 Each save carries a durable submission ID. The editor checks shared processing
@@ -97,9 +97,9 @@ across reloads. Only one save/publication runs at a time. A failed publication a
 a successful push is reported as saved to GitHub with publication pending.
 
 The publisher fetches the canonical branch back from GitHub, extracts only its
-`info/` Git tree into a temporary directory, validates the complete archive, and
+`info/` Git tree into a temporary directory, validates the complete map content, and
 atomically switches the live snapshot. No working-tree files are copied. The map
-reloads a changed snapshot on the next archive request; existing browser tabs need
+reloads a changed snapshot on the next content request; existing browser tabs need
 refreshing. Manual content pushes are published with `sudo ./update-info.sh` (or
 the full `sudo ./upgrade.sh`). Neither the editor nor the content update command
 rebuilds or restarts the application container.
@@ -113,7 +113,7 @@ as alt text. Existing text is preserved byte-for-byte on moves when unchanged.
 
 Only the documented files belong in `info/`; keep supporting documentation
 elsewhere. Symlinks, executable files and extra nesting are rejected. Each file
-is limited to 128 KiB and the entire archive to 16 MiB of text.
+is limited to 128 KiB and the entire map content to 16 MiB of text.
 
 ```bash
 npm run validate
@@ -125,16 +125,16 @@ git diff -- info/
 
 `tests/fixtures/legacy-dances.md` is an unchanged historical fixture, never live
 content. `scripts/migrate-content.js` still converts that original Markdown into
-the historical nested format using `scripts/nested-archive.js` (migration-only).
+the historical nested format using `scripts/nested-content.js` (migration-only).
 
-`scripts/flatten-content.js SOURCE DESTINATION` converts a nested archive to the
+`scripts/flatten-content.js SOURCE DESTINATION` converts nested content to the
 current flat format. It validates before writing and refuses existing destination
 directories. It preserves names, colors, coordinates, map village IDs, and exact
 Markdown bytes. Subregion ID collisions are disambiguated with the original
 region ID. The live loader accepts only the current flat schema.
 
 Existing unmerged proposals using old paths must be recreated against the new
-archive before merging. Old PRs are not automatically merged by the editor.
+map content before merging. Old PRs are not automatically merged by the editor.
 Reload/reopen the editor after a schema deployment. Changes to the content format
 must remain compatible with the deployed application or be coordinated with a code
 upgrade; ordinary notes and metadata edits need no code deployment.

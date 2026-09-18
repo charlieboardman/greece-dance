@@ -1,12 +1,12 @@
 import { mkdir, mkdtemp, readFile, readlink, rename, rm, symlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { loadArchive } from "../lib/archive.js";
+import { loadContent } from "../lib/content.js";
 import { syncDirectory } from "./state.js";
 
 // Mount this entire directory, not its current symlink. All generations contain
 // ordinary JSON/Markdown and remain immutable once published.
-export class PublishedArchive {
+export class PublishedContent {
   constructor(directory) { this.directory = directory; this.cached = null; }
 
   async snapshot() {
@@ -16,8 +16,8 @@ export class PublishedArchive {
     const folder = path.join(this.directory, target);
     const revision = (await readFile(path.join(folder, "revision"), "utf8")).trim();
     if (!/^[a-f0-9]{40}$/u.test(revision)) throw new Error("Invalid published revision.");
-    const archive = await loadArchive(path.join(folder, "info"));
-    this.cached = { target, revision, archive };
+    const content = await loadContent(path.join(folder, "info"));
+    this.cached = { target, revision, content };
     return this.cached;
   }
 
@@ -44,7 +44,7 @@ export class PublishedArchive {
         for (let folder = path.dirname(filename); folder !== staging; folder = path.dirname(folder)) directories.add(folder);
         await writeFile(filename, text, { mode: 0o600, flush: true });
       }
-      await loadArchive(path.join(staging, "info"));
+      await loadContent(path.join(staging, "info"));
       await writeFile(path.join(staging, "revision"), revision + "\n", { mode: 0o600, flush: true });
       for (const folder of [...directories].sort((a, b) => b.length - a.length)) await syncDirectory(folder);
       const target = `versions/${revision}-${randomUUID()}`;

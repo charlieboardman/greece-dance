@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import path from "node:path";
 import { tmpdir } from "node:os";
-import { ContentError, parseArchiveFiles } from "../lib/archive.js";
+import { ContentError, parseContentFiles } from "../lib/content.js";
 import { changeFiles, checkConflict, digest, fileChanges } from "../lib/changes.js";
 import { acquireLock, withLock, readJSON, writeJSON } from "./state.js";
 
@@ -55,7 +55,7 @@ export class GitEditor {
     return this.text(["rev-parse", `refs/remotes/origin/${this.branch}`]);
   }
   async files(revision) {
-    if (!/^[a-f0-9]{40}$/u.test(revision)) throw new ContentError("Invalid archive revision.");
+    if (!/^[a-f0-9]{40}$/u.test(revision)) throw new ContentError("Invalid content revision.");
     const tree = (await this.git(["ls-tree", "-rz", revision, "--", "info/"])).output.toString("utf8");
     const entries = tree.split("\0").filter(Boolean).map((line) => {
       const match = /^(\d+) blob ([a-f0-9]+)\tinfo\/(.+)$/u.exec(line);
@@ -75,25 +75,25 @@ export class GitEditor {
       const newline = data.indexOf(10, offset);
       const header = data.subarray(offset, newline).toString("utf8");
       const size = Number(header.split(" ")[2]);
-      if (!Number.isInteger(size) || size < 0 || size > 128 * 1024) throw new ContentError("Invalid archive blob.");
+      if (!Number.isInteger(size) || size < 0 || size > 128 * 1024) throw new ContentError("Invalid content blob.");
       offset = newline + 1;
       files.set(entry.name, data.subarray(offset, offset + size).toString("utf8"));
       offset += size + 1;
     }
-    parseArchiveFiles(files);
+    parseContentFiles(files);
     return files;
   }
   snapshot() {
     return this.exclusive(() => withLock(this.lockfile, async () => {
       const revision = await this.fetch();
-      return { revision, records: parseArchiveFiles(await this.files(revision)).records };
+      return { revision, records: parseContentFiles(await this.files(revision)).records };
     }));
   }
   async prepare(request) {
-    if (!request || !/^[a-f0-9]{40}$/u.test(request.base) || !request.change) throw new ContentError("Reload the archive before editing.");
+    if (!request || !/^[a-f0-9]{40}$/u.test(request.base) || !request.change) throw new ContentError("Reload the map content before editing.");
     const latest = await this.fetch();
     const ancestry = await this.git(["merge-base", "--is-ancestor", request.base, latest], { okCodes: [0, 1, 128] });
-    if (ancestry.code !== 0) throw new ContentError("The archive history changed. Reload before submitting.", 409);
+    if (ancestry.code !== 0) throw new ContentError("The map content history changed. Reload before submitting.", 409);
     const baseFiles = await this.files(request.base);
     // Validate intent against the version actually shown in the form first.
     changeFiles(baseFiles, request.change);
@@ -112,8 +112,8 @@ export class GitEditor {
   }
   async commit(prepared, message) {
     const temporary = await mkdtemp(path.join(tmpdir(), "dance-index-"));
-    const env = { GIT_INDEX_FILE: path.join(temporary, "index"), GIT_AUTHOR_NAME: "Dance archive editor",
-      GIT_AUTHOR_EMAIL: "editor@greece-dance.invalid", GIT_COMMITTER_NAME: "Dance archive editor", GIT_COMMITTER_EMAIL: "editor@greece-dance.invalid" };
+    const env = { GIT_INDEX_FILE: path.join(temporary, "index"), GIT_AUTHOR_NAME: "National Dance Ministry Map editor",
+      GIT_AUTHOR_EMAIL: "editor@greece-dance.invalid", GIT_COMMITTER_NAME: "National Dance Ministry Map editor", GIT_COMMITTER_EMAIL: "editor@greece-dance.invalid" };
     try {
       await this.git(["read-tree", prepared.latest], { env });
       for (const change of prepared.changes) {
@@ -203,7 +203,7 @@ export class GitEditor {
           if (!message.includes(marker) || !message.includes(submissionMarker)) throw new ContentError("This submission ID was already used for a different edit.", 409);
           break;
         }
-        if (operation.commit) throw new ContentError("The saved commit was removed from the canonical history. Review the archive before saving again.", 409);
+        if (operation.commit) throw new ContentError("The saved commit was removed from the canonical history. Review the map content before saving again.", 409);
         const prepared = await this.prepare(request);
         if (prepared.previewHash !== request.previewHash) throw new ContentError("The proposed changes differ from your preview. Preview again.", 409);
         commit = await this.commit(prepared, `${request.change.action}: ${request.change.path}\n\n${submissionMarker}\n${marker}\n`);

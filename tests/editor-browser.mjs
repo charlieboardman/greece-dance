@@ -7,7 +7,7 @@ import path from "node:path";
 import os from "node:os";
 import { createApp } from "../server/app.js";
 import { GitEditor, runGit } from "../server/git.js";
-import { PublishedArchive } from "../server/publisher.js";
+import { PublishedContent } from "../server/publisher.js";
 import { hashPassword } from "../server/password.js";
 
 const { chromium } = await import(process.env.PLAYWRIGHT_MODULE || "playwright");
@@ -22,7 +22,7 @@ try {
   await mkdir(path.join(clone, "info/regions/region"), { recursive: true });
   await writeFile(path.join(clone, "info/regions/region/region.json"), JSON.stringify({ names: { en: "Region", el: "Περιοχή" }, color: "#336699" }));
   await git("add", "."); await git("commit", "-m", "Fixture"); await git("push", "origin", "main");
-  const publisher = new PublishedArchive(path.join(root, "published"));
+  const publisher = new PublishedContent(path.join(root, "published"));
   const editor = new GitEditor({ remote, directory: path.join(root, "state/repository.git"), publisher });
   await editor.publish();
   // Reserve a local port so Origin can be configured before constructing Express.
@@ -70,7 +70,7 @@ try {
   assert.equal(await pages[1].locator("#name-en").inputValue(), "Second draft");
   await pages[1].reload();
   await pages[1].waitForFunction(() => document.getElementById("name-en").value === "Second draft");
-  assert.equal((await (await fetch(`${origin}/api/archive`)).json()).regions[0].name, "First edit");
+  assert.equal((await (await fetch(`${origin}/api/content`)).json()).regions[0].name, "First edit");
   assert.deepEqual(errors, []);
   console.log("Browser check passed: two visitors, busy spinner, reload during save, restored draft/revision, conflict preservation, and live content without restart.");
 } finally {

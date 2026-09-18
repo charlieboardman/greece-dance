@@ -103,14 +103,14 @@ proxy. The container shares the host network, but not its writable filesystem.
 The editor independently fetches `main`, validates a record change against its
 loaded revision, and pushes a content-only commit directly to `main`, without
 force-pushing. Competing laptop pushes trigger fresh conflict checks. A partial
-clone downloads the archive blobs it needs, not unrelated engine or asset blobs;
+clone downloads the content blobs it needs, not unrelated engine or asset blobs;
 old objects already in an existing cache are retained.
 
 After the push, the shared Node publisher fetches `main` again, checks that the
 saved commit was accepted, extracts only `info/`, validates the entire staged
-archive and switches `current`. No operator working-tree edits enter publication.
-The API notices the pointer on the next archive request and replaces its in-memory
-archive; refresh an open map tab to see changes. The mounted parent directory must
+map content and switches `current`. No operator working-tree edits enter publication.
+The API notices the pointer on the next content request and replaces its in-memory
+content; refresh an open map tab to see changes. The mounted parent directory must
 remain stable: never bind-mount just the `current` symlink.
 
 Editor/CLI operations share a kernel file lock across container processes. Each

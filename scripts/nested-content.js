@@ -1,5 +1,5 @@
 // Historical nested format reader, used only by migration tools/tests.
-// Live archive loading is implemented in lib/archive.js.
+// Live content loading is implemented in lib/content.js.
 import { readdir, readFile, lstat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -59,13 +59,13 @@ export function validateMetadata(type, value, location = type) {
 }
 
 // File keys are relative to info/. This pure entry point also validates Git trees.
-export function parseArchiveFiles(files) {
+export function parseContentFiles(files) {
   const records = new Map();
   let total = 0;
   for (const [filename, text] of files) {
     if (typeof text !== "string" || Buffer.byteLength(text) > MAX_FILE || text.includes("\0")) fail(filename, "Invalid or oversized text file.");
     total += Buffer.byteLength(text);
-    if (total > 16 * 1024 * 1024) fail("info/", "Archive text size limit exceeded.");
+    if (total > 16 * 1024 * 1024) fail("info/", "Content text size limit exceeded.");
     const slash = filename.lastIndexOf("/");
     if (slash < 0) fail(filename, "Files must belong to a region or village folder.");
     const folder = filename.slice(0, slash);
@@ -110,11 +110,11 @@ export function parseArchiveFiles(files) {
     }
     nodes.set(folder, node);
   }
-  if (!regions.length) fail("info/", "Keep at least one region in the archive (it may be empty).");
+  if (!regions.length) fail("info/", "Keep at least one region in the map content (it may be empty).");
   return { regions, places, records: orderedRecords };
 }
 
-export async function readArchiveFiles(root) {
+export async function readContentFiles(root) {
   if (root instanceof URL) root = fileURLToPath(root);
   if (!(await lstat(root)).isDirectory()) fail(root, "Expected a real directory.");
   const files = new Map();
@@ -133,7 +133,7 @@ export async function readArchiveFiles(root) {
         const stat = await lstat(path.join(root, key));
         if (stat.mode & 0o111) fail(key, "Executable files are not allowed in info/.");
         total += stat.size;
-        if (stat.size > MAX_FILE || total > 16 * 1024 * 1024) fail(key, "Archive text size limit exceeded.");
+        if (stat.size > MAX_FILE || total > 16 * 1024 * 1024) fail(key, "Content text size limit exceeded.");
         files.set(key, await readFile(path.join(root, key), "utf8"));
       } else fail(key, "Only regular files and directories are allowed.");
     }
@@ -142,4 +142,4 @@ export async function readArchiveFiles(root) {
   return files;
 }
 
-export async function loadArchive(root) { return parseArchiveFiles(await readArchiveFiles(root)); }
+export async function loadContent(root) { return parseContentFiles(await readContentFiles(root)); }

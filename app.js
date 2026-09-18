@@ -28,9 +28,9 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
   try {
     if (!window.marked?.parse) throw new Error("The bundled Markdown reader could not be loaded.");
     if (!window.DOMPurify?.sanitize) throw new Error("The bundled HTML sanitizer could not be loaded.");
-    const dancesUrl = new URL("./api/archive", import.meta.url);
+    const dancesUrl = new URL("./api/content", import.meta.url);
     const response = await fetch(dancesUrl, { cache: "no-store" });
-    if (!response.ok) throw new Error(`Could not load the archive (HTTP ${response.status}).`);
+    if (!response.ok) throw new Error(`Could not load map content (HTTP ${response.status}).`);
     regions = sortRegionsAlphabetically((await response.json()).regions);
   } catch (error) {
     contentError = error;
@@ -79,9 +79,9 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
     search: document.querySelector("#village-search"),
     deselectAll: document.querySelector("#deselect-all"),
     panelScroll: document.querySelector(".panel-scroll"),
-    archive: document.querySelector("#archive-panel"),
-    mobileArchive: document.querySelector("#mobile-archive-button"),
-    desktopArchive: document.querySelector("#desktop-archive-toggle"),
+    content: document.querySelector("#content-panel"),
+    mobileContent: document.querySelector("#mobile-content-button"),
+    desktopContent: document.querySelector("#desktop-content-toggle"),
     panelClose: document.querySelector("#panel-close"),
     homeButton: document.querySelector("#home-button"),
     mapOption: document.querySelector("#map-option"),
@@ -96,7 +96,7 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
 
   document.querySelector("#mobile-count").textContent = String(villages.length).padStart(2, "0");
 
-  const reliefArchiveUrl = new URL(
+  const reliefTilesUrl = new URL(
     "./assets/basemaps/srtm-relief/greece-srtm-relief.pmtiles",
     import.meta.url
   ).href;
@@ -131,6 +131,7 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
   let mapLanguage = "en";
   let selectedMapOption = "terrain";
   try {
+    // Keep these storage keys stable across project renames to preserve preferences.
     const savedLanguage = localStorage.getItem("greek-folk-dance-map-language");
     const savedMapOption = localStorage.getItem("greek-folk-dance-map-option");
     if (supportedLanguages.includes(savedLanguage)) mapLanguage = savedLanguage;
@@ -140,7 +141,7 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
   function selectedMapStyle() {
     return createMapStyle(selectedMapOption, {
       language: mapLanguage,
-      terrainUrl: reliefArchiveUrl,
+      terrainUrl: reliefTilesUrl,
       landSeaSegments: etopoBasemapSegments,
       bounds: navigationBounds
     });
@@ -415,17 +416,17 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
   function showContentError(error) {
     els.panelTitle.textContent = "Atlas content error";
     els.panelTitle.hidden = false;
-    els.archive.classList.add("has-panel-title");
+    els.content.classList.add("has-panel-title");
     els.search.disabled = true;
     els.villageList.innerHTML = `
       <section class="content-error" role="alert">
-        <p class="content-error-label">Could not read the archive</p>
+        <p class="content-error-label">Could not read the map content</p>
         <p>${escapeHtml(error.message || String(error))}</p>
-        <p>Please try again shortly. The archive administrator can check the server logs.</p>
+        <p>Please try again shortly. The map administrator can check the server logs.</p>
       </section>
     `;
     document.querySelector("#mobile-count").textContent = "!";
-    setArchiveOpen(true);
+    setContentOpen(true);
   }
 
   function renderVillages(query = "") {
@@ -779,7 +780,7 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
     villageRowById(id)?.classList.add("is-selected");
     setMarkerState(id, true);
     renderVillageInfoPopup();
-    if (mobileArchiveMedia.matches) setArchiveOpen(false);
+    if (mobileContentMedia.matches) setContentOpen(false);
     requestAnimationFrame(() => els.villageInfoClose.focus());
   }
 
@@ -800,7 +801,7 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
     requestAnimationFrame(() => {
       const rowButton = villageRowById(id)?.querySelector(".tree-village-open");
       const markerButton = markerById.get(id)?.getElement();
-      const target = returnTarget === "row" && !mobileArchiveMedia.matches
+      const target = returnTarget === "row" && !mobileContentMedia.matches
         ? rowButton
         : markerButton;
       target?.focus();
@@ -889,61 +890,61 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
     renderVillages(els.search.value);
   }
 
-  const mobileArchiveMedia = window.matchMedia("(max-width: 720px)");
+  const mobileContentMedia = window.matchMedia("(max-width: 720px)");
 
-  function syncArchiveAccessibility() {
-    const isMobile = mobileArchiveMedia.matches;
-    const isMobileOpen = isMobile && els.archive.classList.contains("is-open");
-    const isDesktopCollapsed = !isMobile && els.atlas.classList.contains("is-archive-collapsed");
-    els.mobileArchive.setAttribute("aria-expanded", String(isMobileOpen));
-    els.desktopArchive.setAttribute("aria-expanded", String(!isDesktopCollapsed));
-    els.desktopArchive.setAttribute(
+  function syncContentAccessibility() {
+    const isMobile = mobileContentMedia.matches;
+    const isMobileOpen = isMobile && els.content.classList.contains("is-open");
+    const isDesktopCollapsed = !isMobile && els.atlas.classList.contains("is-content-collapsed");
+    els.mobileContent.setAttribute("aria-expanded", String(isMobileOpen));
+    els.desktopContent.setAttribute("aria-expanded", String(!isDesktopCollapsed));
+    els.desktopContent.setAttribute(
       "aria-label",
-      isDesktopCollapsed ? "Expand village archive" : "Collapse village archive"
+      isDesktopCollapsed ? "Expand village list" : "Collapse village list"
     );
-    els.archive.inert = (isMobile && !isMobileOpen) || isDesktopCollapsed;
+    els.content.inert = (isMobile && !isMobileOpen) || isDesktopCollapsed;
     if ((isMobile && !isMobileOpen) || isDesktopCollapsed) {
-      els.archive.setAttribute("aria-hidden", "true");
+      els.content.setAttribute("aria-hidden", "true");
     } else {
-      els.archive.removeAttribute("aria-hidden");
+      els.content.removeAttribute("aria-hidden");
     }
   }
 
-  function setArchiveOpen(open, { focusSearch = false, restoreFocus = false } = {}) {
-    if (mobileArchiveMedia.matches) {
-      els.archive.classList.toggle("is-open", open);
+  function setContentOpen(open, { focusSearch = false, restoreFocus = false } = {}) {
+    if (mobileContentMedia.matches) {
+      els.content.classList.toggle("is-open", open);
     } else {
-      els.atlas.classList.toggle("is-archive-collapsed", !open);
+      els.atlas.classList.toggle("is-content-collapsed", !open);
     }
-    syncArchiveAccessibility();
+    syncContentAccessibility();
     requestAnimationFrame(() => {
       map.resize();
       scheduleMapLabelLayout();
     });
     if (open && focusSearch) requestAnimationFrame(() => els.search.focus());
-    if (!open && restoreFocus) els.mobileArchive.focus();
+    if (!open && restoreFocus) els.mobileContent.focus();
   }
 
-  function handleArchiveBreakpointChange() {
-    if (!mobileArchiveMedia.matches) els.archive.classList.remove("is-open");
-    syncArchiveAccessibility();
+  function handleContentBreakpointChange() {
+    if (!mobileContentMedia.matches) els.content.classList.remove("is-open");
+    syncContentAccessibility();
   }
 
   els.search.addEventListener("input", showList);
   els.homeButton.addEventListener("click", resetAtlas);
   els.deselectAll.addEventListener("click", resetAtlas);
   els.villageInfoClose.addEventListener("click", () => closeVillageInfo());
-  els.mobileArchive.addEventListener("click", () => setArchiveOpen(true, { focusSearch: true }));
-  els.desktopArchive.addEventListener("click", () => {
-    setArchiveOpen(els.atlas.classList.contains("is-archive-collapsed"));
+  els.mobileContent.addEventListener("click", () => setContentOpen(true, { focusSearch: true }));
+  els.desktopContent.addEventListener("click", () => {
+    setContentOpen(els.atlas.classList.contains("is-content-collapsed"));
   });
-  els.panelClose.addEventListener("click", () => setArchiveOpen(false, { restoreFocus: true }));
+  els.panelClose.addEventListener("click", () => setContentOpen(false, { restoreFocus: true }));
   els.skipLink.addEventListener("click", (event) => {
     event.preventDefault();
-    setArchiveOpen(true, { focusSearch: true });
+    setContentOpen(true, { focusSearch: true });
   });
-  mobileArchiveMedia.addEventListener("change", handleArchiveBreakpointChange);
-  syncArchiveAccessibility();
+  mobileContentMedia.addEventListener("change", handleContentBreakpointChange);
+  syncContentAccessibility();
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape" && activeInfoVillageId) {
       closeVillageInfo();
@@ -951,10 +952,10 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
     }
     if (
       event.key === "Escape"
-      && mobileArchiveMedia.matches
-      && els.archive.classList.contains("is-open")
+      && mobileContentMedia.matches
+      && els.content.classList.contains("is-open")
     ) {
-      setArchiveOpen(false, { restoreFocus: true });
+      setContentOpen(false, { restoreFocus: true });
     }
   });
 

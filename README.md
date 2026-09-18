@@ -1,6 +1,6 @@
-# Greek Folk Dance Research Map
+# National Dance Ministry Map
 
-An interactive bilingual atlas with a folder-based research archive and a
+An interactive bilingual map with folder-based research content and a
 password-protected editor that records changes in GitHub before publishing them.
 The map uses MapLibre, bundled relief basemaps, and an OpenStreetMap boundary view.
 
@@ -94,7 +94,7 @@ info/                       Canonical region/subregion/village content
 content/README.md           Schema and editing guide
 app.js, index.html          Public map
 editor/                     Password login, forms and change previews
-lib/                        Shared archive loader, validation and edit operations
+lib/                        Shared content loader, validation and edit operations
 server/                     Express API, sessions, Git and GitHub App integration
 deploy/                     Droplet install, service, update and rollback tooling
 scripts/                    Validation, migration, smoke checks and basemap tools

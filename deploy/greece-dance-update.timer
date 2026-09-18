@@ -1,5 +1,5 @@
 [Unit]
-Description=Check for Greek dance archive updates every five minutes
+Description=Check for National Dance Ministry Map updates every five minutes
 
 [Timer]
 OnBootSec=2min

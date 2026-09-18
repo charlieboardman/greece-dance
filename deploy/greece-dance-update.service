@@ -1,5 +1,5 @@
 [Unit]
-Description=Validate and deploy the latest Greek dance archive
+Description=Validate and deploy the latest National Dance Ministry Map content
 After=network-online.target
 Wants=network-online.target
 

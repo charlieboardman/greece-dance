@@ -17,19 +17,19 @@ async function fixture(t, options = {}) {
   return { request: (url, init) => fetch(base + url, init) };
 }
 
-test("public archive, map assets and byte ranges work; private files are not served", async (t) => {
+test("public map content, map assets and byte ranges work; private files are not served", async (t) => {
   const { request } = await fixture(t, { editor: null });
   assert.equal((await request("/")).status, 200);
-  assert.equal((await (await request("/api/archive")).json()).regions.length > 0, true);
+  assert.equal((await (await request("/api/content")).json()).regions.length > 0, true);
   const range = await request("/assets/basemaps/srtm-relief/greece-srtm-relief.pmtiles", { headers: { Range: "bytes=0-126" } });
   assert.equal(range.status, 206); assert.equal((await range.arrayBuffer()).byteLength, 127);
   for (const filename of ["/.env", "/.git/config", "/server/index.js", "/package.json", "/info/thessaly/region.json"]) assert.equal((await request(filename)).status, 404);
-  assert.equal((await request("/api/editor/archive")).status, 503);
+  assert.equal((await request("/api/editor/content")).status, 503);
 });
 
 test("editor requires login, same-origin JSON requests and a session CSRF token", async (t) => {
   const { request } = await fixture(t);
-  assert.equal((await request("/api/editor/archive")).status, 401);
+  assert.equal((await request("/api/editor/content")).status, 401);
   assert.equal((await request("/api/editor/status")).status, 401);
   const login = { method: "POST", headers: { Origin: "http://editor.test", "Content-Type": "application/json" }, body: JSON.stringify({ password: "correct horse battery" }) };
   assert.equal((await request("/api/editor/login", { ...login, headers: { ...login.headers, Origin: "https://attacker.test" } })).status, 403);
@@ -39,14 +39,14 @@ test("editor requires login, same-origin JSON requests and a session CSRF token"
   const cookie = response.headers.get("set-cookie").split(";")[0];
   assert.match(response.headers.get("set-cookie"), /HttpOnly/u); assert.match(response.headers.get("set-cookie"), /SameSite=Strict/u);
   const { csrf } = await response.json();
-  assert.equal((await request("/api/editor/archive", { headers: { Cookie: cookie } })).status, 200);
+  assert.equal((await request("/api/editor/content", { headers: { Cookie: cookie } })).status, 200);
   assert.deepEqual(await (await request("/api/editor/status", { headers: { Cookie: cookie } })).json(), { busy: false, operation: null });
   const mutation = { method: "POST", headers: { ...login.headers, Cookie: cookie }, body: "{}" };
   assert.equal((await request("/api/editor/preview", mutation)).status, 403);
   mutation.headers["X-CSRF-Token"] = csrf;
   assert.equal((await request("/api/editor/preview", mutation)).status, 200);
   assert.equal((await request("/api/editor/logout", mutation)).status, 200);
-  assert.equal((await request("/api/editor/archive", { headers: { Cookie: cookie } })).status, 401);
+  assert.equal((await request("/api/editor/content", { headers: { Cookie: cookie } })).status, 401);
 });
 
 test("login attempts are rate limited", async (t) => {

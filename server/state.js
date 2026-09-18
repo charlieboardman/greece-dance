@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { mkdir, open, readFile, rename, rm } from "node:fs/promises";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { ContentError } from "../lib/archive.js";
+import { ContentError } from "../lib/content.js";
 
 export async function readJSON(filename) {
   try { return JSON.parse(await readFile(filename, "utf8")); }

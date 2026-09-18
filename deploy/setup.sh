@@ -135,14 +135,18 @@ prompt() {
   printf '%s' "$value"
 }
 
-if [[ -z "$hostname" && "$(env_value APP_ORIGIN)" != https://archive.example.org ]]; then
+placeholder_origin() {
+  # Existing installations may still contain the former example domain.
+  [[ "$1" == https://map.example.org || "$1" == https://archive.example.org ]]
+}
+if [[ -z "$hostname" ]] && ! placeholder_origin "$(env_value APP_ORIGIN)"; then
   hostname=$(env_value APP_ORIGIN)
   hostname=${hostname#https://}
   hostname=${hostname#http://}
 fi
 if [[ -z "$hostname" && -t 0 ]]; then
   current_origin=$(env_value APP_ORIGIN)
-  if [[ -z "$current_origin" || "$current_origin" == https://archive.example.org ]]; then
+  if [[ -z "$current_origin" ]] || placeholder_origin "$current_origin"; then
     hostname=$(prompt 'Domain or droplet IPv4 address (uses sslip.io if an IP): ')
   fi
 fi

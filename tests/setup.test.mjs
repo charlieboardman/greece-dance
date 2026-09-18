@@ -111,6 +111,25 @@ test("setup.sh rejects a file that is not a private key", async (t) => {
   assert.match(result.output, /private key/u);
 });
 
+for (const placeholder of ["archive.example.org", "map.example.org"]) {
+  test(`setup retries do not use ${placeholder} as a configured hostname`, async t => {
+    const { etc, nginx, env, args } = await fixture(t);
+    const configPath = path.join(etc, "app.env");
+    await writeFile(configPath, (await readFile(configPath, "utf8")).replace(/^APP_ORIGIN=.*$/mu, `APP_ORIGIN=https://${placeholder}`));
+    const originalNginx = await readFile(nginx, "utf8");
+    const result = await run(args, env);
+    assert.equal(result.code, 0, result.output);
+    assert.equal(await readFile(nginx, "utf8"), originalNginx, "A placeholder must not configure Nginx");
+    const configured = await run(["--skip-install", "--hostname", "dances.example.org"], env);
+    assert.equal(configured.code, 0, configured.output);
+    const config = await readFile(configPath, "utf8");
+    const retry = await run(["--skip-install"], env);
+    assert.equal(retry.code, 0, retry.output);
+    assert.equal(await readFile(configPath, "utf8"), config, "Retry preserves real hostname and credentials");
+    assert.match(await readFile(nginx, "utf8"), /server_name dances\.example\.org;/u);
+  });
+}
+
 test("setup accepts a droplet IPv4 and keeps GitHub App configuration", async (t) => {
   const { etc, nginx, env, args } = await fixture(t);
   const result = await run([...args, "--hostname", "165.227.25.230"], env);

@@ -4,13 +4,13 @@ import { rateLimit } from "express-rate-limit";
 import { randomBytes, timingSafeEqual } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import path from "node:path";
-import { loadArchive, ContentError } from "../lib/archive.js";
+import { loadContent, ContentError } from "../lib/content.js";
 import { SessionStore, verifyPassword } from "./auth.js";
 
 export async function createApp({ root = fileURLToPath(new URL("../", import.meta.url)), editor = null,
   passwordHash = "", sessionSecret = "", origin = "http://localhost:8000", production = false,
   revision = "development", loginLimit = 10, published = null } = {}) {
-  const archive = published ? (await published.snapshot()).archive : await loadArchive(path.join(root, "info"));
+  const content = published ? (await published.snapshot()).content : await loadContent(path.join(root, "info"));
   const app = express();
   app.disable("x-powered-by");
   if (production) app.set("trust proxy", "loopback");
@@ -18,9 +18,9 @@ export async function createApp({ root = fileURLToPath(new URL("../", import.met
     res.set({ "X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY", "Referrer-Policy": "same-origin" }); next();
   });
   app.get("/api/health", (_req, res) => res.set("Cache-Control", "no-store").json({ ok: true, revision }));
-  app.get("/api/archive", async (_req, res) => {
+  app.get("/api/content", async (_req, res) => {
     const live = published ? await published.snapshot() : null;
-    const current = live?.archive || (production ? archive : await loadArchive(path.join(root, "info")));
+    const current = live?.content || (production ? content : await loadContent(path.join(root, "info")));
     res.set("Cache-Control", "no-store").json({ regions: current.regions, revision: live?.revision || revision, appRevision: revision });
   });
   const router = express.Router();
@@ -56,7 +56,7 @@ export async function createApp({ root = fileURLToPath(new URL("../", import.met
       });
     });
     router.use((req, _res, next) => {
-      if (!req.session.authenticated) throw new ContentError("Log in to edit the archive.", 401);
+      if (!req.session.authenticated) throw new ContentError("Log in to edit the National Dance Ministry Map.", 401);
       if (!["GET", "HEAD"].includes(req.method)) {
         const supplied = Buffer.from(req.get("X-CSRF-Token") || "");
         const expected = Buffer.from(req.session.csrf);
@@ -73,7 +73,7 @@ export async function createApp({ root = fileURLToPath(new URL("../", import.met
       async (req, res) => res.json(await editor.status(req.query.id)));
     router.use(rateLimit({ windowMs: 60_000, limit: 30, standardHeaders: "draft-8", legacyHeaders: false,
       message: { error: "Too many editor requests. Try again in a minute." } }));
-    router.get("/archive", async (_req, res) => res.json(await editor.snapshot()));
+    router.get("/content", async (_req, res) => res.json(await editor.snapshot()));
     router.post("/preview", async (req, res) => res.json(await editor.preview(req.body)));
     router.post("/submit", async (req, res) => res.json(await editor.submit(req.body)));
   }

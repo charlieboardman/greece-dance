@@ -25,7 +25,7 @@ const app = await createApp({ root, editor, production, revision, published,
   origin: process.env.APP_ORIGIN || "http://localhost:8000" });
 const port = Number(process.env.PORT || 8000);
 const host = process.env.HOST || "127.0.0.1";
-const server = app.listen(port, host, () => console.log(`Dance archive listening on http://${host}:${port} (${revision})`));
+const server = app.listen(port, host, () => console.log(`National Dance Ministry Map listening on http://${host}:${port} (${revision})`));
 // Recover only interrupted operations. This does not automatically deploy code
 // or publish arbitrary laptop pushes; operators use update-info.sh for those.
 const recovery = service && setInterval(() => service.editor.recover().catch(() => {}), 5000);

@@ -136,7 +136,7 @@ function fillLocations(region = $("region").value, subregion = $("subregion").va
   }
 }
 async function refresh() {
-  snapshot = await api("archive"); displayRecords(); fillLocations();
+  snapshot = await api("content"); displayRecords(); fillLocations();
 }
 function canDiscard() { return !dirty || window.confirm("Discard this unsent draft and select another record?"); }
 function openRecord(record, creating = false) {
@@ -220,7 +220,7 @@ $("login").addEventListener("submit", (event) => {
   event.preventDefault(); perform(async () => {
     ({ csrf } = await api("login", { password: new FormData(event.target).get("password") }));
     event.target.reset(); $("login").hidden = true; $("workspace").hidden = false; $("logout").hidden = false;
-    status("Loading the latest archive…");
+    status("Loading the latest map content…");
     await initialize();
   });
 });
@@ -230,7 +230,7 @@ $("logout").addEventListener("click", () => {
 });
 $("refresh").addEventListener("click", () => perform(async () => {
   await refresh(); proposal = null; $("preview").hidden = true;
-  status("Latest archive loaded. Your draft and its original version are kept. If there is a conflict, reopen the record to start from the latest version.");
+  status("Latest map content loaded. Your draft and its original version are kept. If there is a conflict, reopen the record to start from the latest version.");
 }));
 $("search").addEventListener("input", () => displayRecords());
 $("records").addEventListener("change", () => {

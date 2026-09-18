@@ -15,7 +15,7 @@ test("the map selector exposes the three intended choices", () => {
   ]);
 });
 
-test("terrain uses the range-addressable SRTM archive", () => {
+test("terrain uses the range-addressable SRTM PMTiles file", () => {
   const style = createMapStyle("terrain", { terrainUrl: "https://example.test/terrain.pmtiles" });
 
   assert.equal(style.sources["srtm-relief"].url, "pmtiles://https://example.test/terrain.pmtiles");

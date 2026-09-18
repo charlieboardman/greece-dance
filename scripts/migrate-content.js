@@ -2,7 +2,7 @@ import { mkdir, readFile, writeFile, access } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { parseDancesMarkdown } from "./legacy-dances.js";
-import { jsonText, SUBREGION_SUFFIX, loadArchive } from "./nested-archive.js";
+import { jsonText, SUBREGION_SUFFIX, loadContent } from "./nested-content.js";
 
 export async function migrateContent(source, destination) {
   try { await access(destination); throw new Error(`Destination already exists: ${destination}`); }
@@ -30,12 +30,12 @@ export async function migrateContent(source, destination) {
       for (const item of subregion.villages) await village(subfolder, item);
     }
   }
-  return loadArchive(destination);
+  return loadContent(destination);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const source = process.argv[2] || "tests/fixtures/legacy-dances.md";
   const destination = process.argv[3] || "info";
-  const archive = await migrateContent(await readFile(source, "utf8"), destination);
-  console.log(`Migrated ${archive.regions.length} regions and ${archive.places.length} villages to ${destination}.`);
+  const content = await migrateContent(await readFile(source, "utf8"), destination);
+  console.log(`Migrated ${content.regions.length} regions and ${content.places.length} villages to ${destination}.`);
 }

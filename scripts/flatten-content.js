@@ -1,20 +1,20 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { parseArchiveFiles as parseNested, readArchiveFiles as readNested } from "./nested-archive.js";
-import { parseArchiveFiles, jsonText, loadArchive } from "../lib/archive.js";
+import { parseContentFiles as parseNested, readContentFiles as readNested } from "./nested-content.js";
+import { parseContentFiles, jsonText, loadContent } from "../lib/content.js";
 
 export function flattenFiles(files) {
-  const archive = parseNested(files);
+  const content = parseNested(files);
   const output = new Map(), subregions = new Map(), used = new Set();
-  for (const record of archive.records.filter(r => r.type === "subregion")) {
+  for (const record of content.records.filter(r => r.type === "subregion")) {
     const parts = record.path.split("/");
     let id = parts[1].replace(/ \(subregion\)$/u, "");
     if (used.has(id)) id = `${parts[0]}--${id}`;
     if (used.has(id)) throw new Error("Duplicate subregion ID during migration.");
     used.add(id); subregions.set(record.path, id);
   }
-  for (const record of archive.records) {
+  for (const record of content.records) {
     const parts = record.path.split("/");
     const id = record.type === "region" ? parts[0] : record.type === "subregion" ? subregions.get(record.path)
       : parts.map(p => p.replace(/ \(subregion\)$/u, "")).join("--");
@@ -29,7 +29,7 @@ export function flattenFiles(files) {
       if (text !== undefined) output.set(`${folder}/info.${language}.md`, text);
     }
   }
-  parseArchiveFiles(output);
+  parseContentFiles(output);
   return output;
 }
 export async function flattenContent(source, destination) {
@@ -41,7 +41,7 @@ export async function flattenContent(source, destination) {
     await mkdir(path.dirname(target), { recursive: true });
     await writeFile(target, text);
   }
-  return loadArchive(destination);
+  return loadContent(destination);
 }
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   await flattenContent(process.argv[2] || "info", process.argv[3] || "info-flat");

@@ -5,8 +5,8 @@ import os from "node:os";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { GitEditor, runGit } from "../server/git.js";
-import { PublishedArchive } from "../server/publisher.js";
-import { jsonText } from "../lib/archive.js";
+import { PublishedContent } from "../server/publisher.js";
+import { jsonText } from "../lib/content.js";
 import { writeJSON, acquireLock } from "../server/state.js";
 import { spawn } from "node:child_process";
 import { once } from "node:events";
@@ -25,8 +25,8 @@ async function fixture(t) {
   await mkdir(path.join(clone, "info/regions/region"), { recursive: true });
   await writeFile(path.join(clone, "info/regions/region/region.json"), jsonText({ names, color: "#336699" }));
   await writeFile(path.join(clone, "app.js"), "original code\n");
-  await git("add", "."); await git("commit", "-m", "Initial archive"); await git("push", "origin", "main");
-  const publisher = new PublishedArchive(path.join(root, "published"));
+  await git("add", "."); await git("commit", "-m", "Initial map content"); await git("push", "origin", "main");
+  const publisher = new PublishedContent(path.join(root, "published"));
   const options = { directory: path.join(root, "state/repository.git"), remote: `file://${remote}`, publisher };
   const editor = new GitEditor(options);
   await editor.publish();
@@ -44,7 +44,7 @@ test("save pushes only content directly to main and publishes the GitHub round t
   assert.equal(await git("rev-parse", "origin/main"), result.commit);
   assert.equal(await git("diff", "--name-only", revision, result.commit), "info/regions/region/region.json");
   assert.equal(await git("ls-remote", "origin", "refs/heads/editor/*"), "");
-  assert.equal((await publisher.snapshot()).archive.regions[0].name, "Renamed");
+  assert.equal((await publisher.snapshot()).content.regions[0].name, "Renamed");
   assert.equal((await editor.submit(request)).commit, result.commit);
   assert.equal((await editor.status(request.submissionId)).operation.state, "completed");
   await assert.rejects(editor.submit({ ...request, change: { ...request.change, metadata: { ...request.change.metadata, color: "#ffffff" } } }), /different edit/u);
@@ -58,11 +58,11 @@ test("publication failure recovers after restart without a duplicate commit", as
   await assert.rejects(editor.submit(request), /Saved to GitHub/u);
   await git("fetch", "origin");
   const commit = await git("rev-parse", "origin/main");
-  assert.equal((await publisher.snapshot()).archive.regions[0].name, "Region");
+  assert.equal((await publisher.snapshot()).content.regions[0].name, "Region");
   publisher.publish = publish;
   const restarted = new GitEditor(options);
   assert.equal((await restarted.submit(request)).commit, commit);
-  assert.equal((await publisher.snapshot()).archive.regions[0].name, "Renamed");
+  assert.equal((await publisher.snapshot()).content.regions[0].name, "Renamed");
   await git("fetch", "origin");
   assert.equal(await git("rev-list", "--count", "origin/main"), "2");
 });
@@ -156,7 +156,7 @@ test("partial clone downloads info blobs without engine blobs", async t => {
   assert.equal((await editor.snapshot()).records.length, 1);
 });
 
-test("publication ignores dirty operator files, includes deletions, and rejects invalid fetched archives", async t => {
+test("publication ignores dirty operator files, includes deletions, and rejects invalid fetched content", async t => {
   const { editor, clone, git, publisher } = await fixture(t);
   const initial = await publisher.snapshot();
   await writeFile(path.join(clone, "info/regions/region/region.json"), "uncommitted invalid draft");
@@ -173,12 +173,12 @@ test("publication ignores dirty operator files, includes deletions, and rejects 
   await git("add", "."); await git("commit", "-m", "Repair and add village"); await git("push", "origin", "main");
   await editor.publish();
   const before = await publisher.snapshot();
-  assert.equal(before.archive.regions[0].villages.length, 1);
+  assert.equal(before.content.regions[0].villages.length, 1);
   const snapshot = await editor.snapshot();
   const request = await proposal(editor, { base: snapshot.revision, change: { action: "delete", path: "villages/village" } });
   await editor.submit(request);
-  assert.equal((await publisher.snapshot()).archive.regions[0].villages.length, 0);
-  assert.equal(before.archive.regions[0].villages.length, 1, "Existing readers retain a complete old snapshot");
+  assert.equal((await publisher.snapshot()).content.regions[0].villages.length, 0);
+  assert.equal(before.content.regions[0].villages.length, 1, "Existing readers retain a complete old snapshot");
 });
 
 test("CLI and editor share publication code and update the same live snapshot", async t => {
@@ -193,7 +193,7 @@ test("CLI and editor share publication code and update the same live snapshot", 
   let output = ""; child.stdout.on("data", data => { output += data; }); child.stderr.on("data", data => { output += data; });
   const [code] = await once(child, "close");
   assert.equal(code, 0, output);
-  assert.equal((await publisher.snapshot()).archive.regions[0].name, "From laptop");
+  assert.equal((await publisher.snapshot()).content.regions[0].name, "From laptop");
   assert.equal(await readFile(path.join(clone, "info/regions/region/region.json"), "utf8"), "do not publish this dirty file");
 });
 

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#0D5EAF">
     <meta name="description" content="A research tool for Greek Folk dances.">
-    <title>National Ministry of Greek Folk Dance Research Map</title>
+    <title>National Dance Ministry Map</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=Gloock&display=swap" rel="stylesheet">
@@ -13,12 +13,12 @@
     <link rel="stylesheet" href="styles.css">
   </head>
   <body>
-    <a class="skip-link" href="#archive-panel">Skip to archive</a>
+    <a class="skip-link" href="#content-panel">Skip to village list</a>
     <div class="app-shell">
       <header class="site-header">
         <div class="brand">
           <button class="brand-mark brand-home-button" id="home-button" type="button" aria-label="Reset map">logo here</button>
-          <h1 class="brand-name">National Ministry of Greek Folk Dance Research Map</h1>
+          <h1 class="brand-name">National Dance Ministry Map</h1>
         </div>
         <label class="map-option-control" for="map-option">
           <span>Map</span>
@@ -48,21 +48,21 @@
             </div>
           </section>
 
-          <button class="mobile-archive-button" id="mobile-archive-button" type="button" aria-controls="archive-panel" aria-expanded="false">
-            Open archive <span id="mobile-count">00</span>
+          <button class="mobile-content-button" id="mobile-content-button" type="button" aria-controls="content-panel" aria-expanded="false">
+            Open village list <span id="mobile-count">00</span>
           </button>
 
-          <button class="desktop-archive-toggle" id="desktop-archive-toggle" type="button" aria-controls="archive-panel" aria-expanded="true" aria-label="Collapse village archive">
+          <button class="desktop-content-toggle" id="desktop-content-toggle" type="button" aria-controls="content-panel" aria-expanded="true" aria-label="Collapse village list">
             <span aria-hidden="true">›</span>
           </button>
         </section>
 
-        <aside class="archive-panel" id="archive-panel" aria-label="Village archive" tabindex="-1">
+        <aside class="content-panel" id="content-panel" aria-label="Village list" tabindex="-1">
           <div class="panel-header">
             <div>
-              <h2 id="panel-title" hidden>Village archive</h2>
+              <h2 id="panel-title" hidden>Village list</h2>
             </div>
-            <button class="panel-close" id="panel-close" type="button" aria-label="Close archive">×</button>
+            <button class="panel-close" id="panel-close" type="button" aria-label="Close village list">×</button>
           </div>
 
           <div class="search-wrap">
@@ -76,8 +76,8 @@
           </div>
 
           <div class="panel-scroll">
-            <div id="village-list" class="archive-tree" aria-live="polite">
-              <p class="loading-state">Loading the archive…</p>
+            <div id="village-list" class="content-tree" aria-live="polite">
+              <p class="loading-state">Loading map content…</p>
             </div>
           </div>
         </aside>

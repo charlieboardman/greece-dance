@@ -1,6 +1,6 @@
-# Working on the Greek folk dance archive
+# Working on the National Dance Ministry Map
 
-Read `content/README.md` before editing archive content.
+Read `content/README.md` before editing map content.
 
 - `info/` is the sole live content source. Region and village JSON contain
   metadata; village Markdown contains the dances and research notes.
@@ -14,7 +14,7 @@ Read `content/README.md` before editing archive content.
   separate. Web edits push content-only commits directly to the canonical branch
   (no PRs), then fetch accepted content back before publication. Never mutate the
   code release. Editor and CLI must share publication code and a process-safe lock.
-- Publish complete validated snapshots atomically; preserve the last live archive
+- Publish complete validated snapshots atomically; preserve the last live map content
   on failure. setup.sh must be rerunnable without losing credentials or state.
 - Keep conflict detection based on the version the editor loaded. Preserve user
   input on submission errors and idempotent retry after a partial push.
