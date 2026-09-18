@@ -21,6 +21,10 @@ try {
   await git("config", "user.name", "Browser fixture"); await git("config", "user.email", "test@example.test");
   await mkdir(path.join(clone, "info/regions/region"), { recursive: true });
   await writeFile(path.join(clone, "info/regions/region/region.json"), JSON.stringify({ names: { en: "Region", el: "Περιοχή" }, color: "#336699" }));
+  await mkdir(path.join(clone, "info/regions/another"), { recursive: true });
+  await writeFile(path.join(clone, "info/regions/another/region.json"), JSON.stringify({ names: { en: "Another region", el: "Άλλη περιοχή" }, color: "#996633" }));
+  await mkdir(path.join(clone, "info/subregions/subregion"), { recursive: true });
+  await writeFile(path.join(clone, "info/subregions/subregion/subregion.json"), JSON.stringify({ names: { en: "Subregion", el: "Υποπεριοχή" }, region: "region" }));
   await git("add", "."); await git("commit", "-m", "Fixture"); await git("push", "origin", "main");
   const publisher = new PublishedContent(path.join(root, "published"));
   const editor = new GitEditor({ remote, directory: path.join(root, "state/repository.git"), publisher });
@@ -70,9 +74,54 @@ try {
   assert.equal(await pages[1].locator("#name-en").inputValue(), "Second draft");
   await pages[1].reload();
   await pages[1].waitForFunction(() => document.getElementById("name-en").value === "Second draft");
-  assert.equal((await (await fetch(`${origin}/api/content`)).json()).regions[0].name, "First edit");
+  assert.ok((await (await fetch(`${origin}/api/content`)).json()).regions.some(region => region.name === "First edit"));
+  await pages[0].locator("#new-village").click();
+  await pages[0].locator("#region").selectOption("region");
+  await pages[0].locator("#subregion").selectOption("subregion");
+  await pages[0].locator("#name-en").fill("First village");
+  await pages[0].locator("#name-el").fill("Πρώτο χωριό");
+  await pages[0].locator("#latitude").fill("40");
+  await pages[0].locator("#longitude").fill("22");
+  await pages[0].locator("#info-en").fill("First village notes");
+  await pages[0].locator("#info-el").fill("Σημειώσεις");
+  await pages[0].locator('#edit button[type="submit"]').click();
+  await pages[0].waitForFunction(() => !document.getElementById("submit").disabled && !document.getElementById("preview").hidden);
+  await pages[0].locator("#submit").click();
+  await pages[0].waitForFunction(() => document.getElementById("status").textContent.includes("Saved and live"));
+  await pages[0].locator("#new-village").click();
+  assert.equal(await pages[0].locator("#region").inputValue(), "region");
+  assert.equal(await pages[0].locator("#subregion").inputValue(), "subregion");
+  for (const field of ["name-en", "name-el", "latitude", "longitude", "info-en", "info-el"]) {
+    assert.equal(await pages[0].locator(`#${field}`).inputValue(), "", `${field} must start blank`);
+  }
+  assert.equal(await pages[0].locator("#preview").isVisible(), false);
+  // A draft created with remembered location must also survive a reload.
+  await pages[0].locator("#name-en").fill("Second village draft");
+  await pages[0].reload();
+  await pages[0].waitForFunction(() => document.getElementById("name-en").value === "Second village draft");
+  assert.equal(await pages[0].locator("#region").inputValue(), "region");
+  assert.equal(await pages[0].locator("#subregion").inputValue(), "subregion");
+  // Unsent changes do not replace the last successfully saved location.
+  await pages[0].locator("#region").selectOption("another");
+  await pages[0].locator("#new-village").click();
+  assert.equal(await pages[0].locator("#region").inputValue(), "region");
+  assert.equal(await pages[0].locator("#subregion").inputValue(), "subregion");
+  // Validate defaults against the latest records, not stale session IDs.
+  const content = await editor.snapshot();
+  for (const scenario of ["subregion moved", "subregion deleted", "region deleted"]) {
+    const records = structuredClone(content.records).filter(record => scenario === "region deleted"
+      ? record.path !== "regions/region" && record.path !== "subregions/subregion"
+      : scenario !== "subregion deleted" || record.path !== "subregions/subregion");
+    if (scenario === "subregion moved") records.find(record => record.path === "subregions/subregion").metadata.region = "another";
+    await pages[0].route("**/api/editor/content", route => route.fulfill({ json: { ...content, records } }));
+    await pages[0].reload();
+    await pages[0].locator("#new-village").click();
+    assert.equal(await pages[0].locator("#region").inputValue(), scenario === "region deleted" ? "another" : "region", scenario);
+    assert.equal(await pages[0].locator("#subregion").inputValue(), "", scenario);
+    await pages[0].unroute("**/api/editor/content");
+  }
   assert.deepEqual(errors, []);
-  console.log("Browser check passed: two visitors, busy spinner, reload during save, restored draft/revision, conflict preservation, and live content without restart.");
+  console.log("Browser check passed: two visitors, busy spinner, reload during save, restored draft/revision, conflict preservation, remembered village location, and live content without restart.");
 } finally {
   unblock?.();
   await browser?.close();

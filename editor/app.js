@@ -11,7 +11,27 @@ let serverBusy = true;
 let pending = null;
 let polling = false;
 const storageKey = "dance-editor-draft-v1";
+const villageLocationStorageKey = "national-dance-ministry-map-editor-last-village-location-v1";
 const fields = ["name-en", "name-el", "color", "latitude", "longitude", "region", "subregion", "info-en", "info-el", "delete"];
+
+function lastVillageLocation() {
+  try {
+    const location = JSON.parse(sessionStorage.getItem(villageLocationStorageKey));
+    const region = snapshot.records.find(record => record.type === "region" && recordId(record) === location?.region);
+    if (!region) return {};
+    const subregion = snapshot.records.find(record => record.type === "subregion" && recordId(record) === location.subregion && record.metadata.region === location.region);
+    return { metadata: { region: location.region, subregion: subregion ? location.subregion : null } };
+  } catch { return {}; }
+}
+function rememberVillageLocation() {
+  const change = pending?.change;
+  if (change?.action === "create" && current?.type === "village") {
+    // Use the confirmed submission, including when recovering a save after reload.
+    try {
+      sessionStorage.setItem(villageLocationStorageKey, JSON.stringify({ region: change.metadata.region, subregion: change.metadata.subregion }));
+    } catch { /* Optional defaults must not interrupt successful save handling. */ }
+  }
+}
 
 function persistDraft() {
   if (!current) return;
@@ -46,6 +66,7 @@ function controls() {
 }
 async function saved(operation) {
   const recordPath = pending?.change.path;
+  rememberVillageLocation();
   pending = null; proposal = null; dirty = false;
   sessionStorage.removeItem(storageKey);
   await refresh();
@@ -152,8 +173,8 @@ function openRecord(record, creating = false) {
   $("village-fields").hidden = record.type !== "village";
   $("latitude").required = $("longitude").required = record.type === "village";
   $("delete-label").hidden = creating;
-  $("name-en").value = record.metadata?.names.en || "";
-  $("name-el").value = record.metadata?.names.el || "";
+  $("name-en").value = record.metadata?.names?.en || "";
+  $("name-el").value = record.metadata?.names?.el || "";
   $("color").value = record.metadata?.color || "#336699";
   $("latitude").value = record.metadata?.latitude ?? "";
   $("longitude").value = record.metadata?.longitude ?? "";
@@ -226,7 +247,7 @@ $("login").addEventListener("submit", (event) => {
 });
 $("logout").addEventListener("click", () => {
   if (!canDiscard()) return;
-  perform(async () => { await api("logout", {}); sessionStorage.removeItem(storageKey); dirty = false; location.reload(); });
+  perform(async () => { await api("logout", {}); sessionStorage.removeItem(storageKey); sessionStorage.removeItem(villageLocationStorageKey); dirty = false; location.reload(); });
 });
 $("refresh").addEventListener("click", () => perform(async () => {
   await refresh(); proposal = null; $("preview").hidden = true;
@@ -240,7 +261,7 @@ $("records").addEventListener("change", () => {
 for (const type of ["region", "subregion", "village"]) $("new-" + type).addEventListener("click", () => {
   if (!canDiscard()) return;
   if (type !== "region" && !snapshot.records.some((r) => r.type === "region")) return status("Add a region first.", true);
-  openRecord({ type }, true);
+  openRecord(type === "village" ? { type, ...lastVillageLocation() } : { type }, true);
 });
 $("region").addEventListener("change", () => { fillSubregions(); invalidate(); persistDraft(); });
 $("edit").addEventListener("input", () => { invalidate(); renderInfo(); persistDraft(); });
