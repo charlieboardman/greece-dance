@@ -1,10 +1,10 @@
 {
   "names": {
-    "en": "Hionades",
+    "en": "Chionades",
     "el": "Χιονάδες"
   },
-  "latitude": 41.49,
-  "longitude": 26.318,
   "region": "thrace",
-  "subregion": null
+  "subregion": null,
+  "latitude": 41.49,
+  "longitude": 26.318
 }
