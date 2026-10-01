@@ -3,8 +3,8 @@
     "en": "Kavakli",
     "el": "Καβακλί"
   },
-  "latitude": 42.085,
-  "longitude": 26.332,
   "region": "anatoliki-romelia",
-  "subregion": null
+  "subregion": null,
+  "latitude": 42.0833,
+  "longitude": 26.3333
 }
