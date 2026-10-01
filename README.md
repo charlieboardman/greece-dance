@@ -2,7 +2,10 @@
 
 An interactive bilingual map with folder-based research content and a
 password-protected editor that records changes in GitHub before publishing them.
-The map uses MapLibre, bundled relief basemaps, and an OpenStreetMap boundary view.
+The map uses MapLibre, bundled relief basemaps, and OpenStreetMap boundary and
+street views. **OSM Streets**, the fourth map option, shows surrounding towns,
+roads, and buildings and allows street-level zoom while retaining village notes
+and markers. It uses the public OSM vector service without an account or API key.
 
 ## Run locally
 
@@ -156,6 +159,12 @@ basemaps before a code release. An optional viewport/navigation regression is:
 
 ```bash
 PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs node tests/map-browser.mjs
+```
+
+The optional detailed-map browser check requests live OSM tiles:
+
+```bash
+PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs node tests/osm-map-browser.mjs
 ```
 
 NASA SRTM, NOAA ETOPO, and Natural Earth supply the relief-map data.

@@ -7,15 +7,33 @@ import {
   createMapStyle,
   MAP_OPTIONS,
   BASEMAP_BOUNDS,
-  TERRAIN_DETAIL_BOUNDS
+  TERRAIN_DETAIL_BOUNDS,
+  mapMaxZoom
 } from "../map-styles.js";
 
-test("the map selector exposes the three intended choices", () => {
+test("the map selector exposes four choices including OSM Streets", () => {
   assert.deepEqual(MAP_OPTIONS, [
     { id: "terrain", label: "Terrain" },
     { id: "land-sea", label: "Land & Sea" },
-    { id: "boundaries", label: "Boundaries" }
+    { id: "boundaries", label: "Boundaries" },
+    { id: "streets", label: "OSM Streets" }
   ]);
+});
+
+test("OSM Streets displays surrounding towns and street detail with localized labels", () => {
+  const style = createMapStyle("streets", { language: "el" });
+  for (const id of ["place-labels", "road-labels"]) {
+    assert.deepEqual(style.layers.find(layer => layer.id === id).layout["text-field"], boundaryLabelExpression("el"));
+  }
+  for (const id of ["major-roads", "minor-roads", "buildings", "rivers"]) {
+    assert.ok(style.layers.some(layer => layer.id === id));
+  }
+  assert.match(style.sources.shortbread.attribution, /OpenStreetMap/);
+  assert.equal(style.sources.shortbread.maxzoom, 14);
+  assert.equal(mapMaxZoom("streets"), 19);
+  assert.equal(mapMaxZoom("terrain"), 11);
+  assert.equal(mapMaxZoom("land-sea"), 11);
+  assert.equal(mapMaxZoom("boundaries"), 11);
 });
 
 test("terrain uses the range-addressable SRTM PMTiles file", () => {

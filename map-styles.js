@@ -1,8 +1,13 @@
 export const MAP_OPTIONS = [
   { id: "terrain", label: "Terrain" },
   { id: "land-sea", label: "Land & Sea" },
-  { id: "boundaries", label: "Boundaries" }
+  { id: "boundaries", label: "Boundaries" },
+  { id: "streets", label: "OSM Streets" }
 ];
+
+export function mapMaxZoom(id) {
+  return id === "streets" ? 19 : 11;
+}
 
 export const BASEMAP_BOUNDS = { south: 0, west: 0, north: 60, east: 60 };
 export const TERRAIN_DETAIL_BOUNDS = { south: 34, west: 12, north: 44, east: 48 };
@@ -19,6 +24,19 @@ export function createMapStyle(id, {
   landSeaSegments = [],
   bounds = BASEMAP_BOUNDS
 } = {}) {
+  if (id === "streets") {
+    const style = createMapStyle("boundaries", { language, bounds });
+    const countryLabels = style.layers.pop();
+    style.layers[0] = backgroundLayer("#f3f1e9", "land-background");
+    style.layers.splice(1, 0, {
+      id: "land-cover", type: "fill", source: "shortbread", "source-layer": "land",
+      paint: { "fill-color": ["match", ["get", "kind"],
+        ["forest", "wood", "park", "grass", "grassland"], "#dce7d0",
+        ["residential", "commercial", "industrial"], "#e9e5df", "#eeeede"] }
+    });
+    style.layers.push(...streetLayers(language), countryLabels);
+    return style;
+  }
   if (id === "terrain") {
     return {
       version: 8,
@@ -184,4 +202,70 @@ function rasterSource(url, bounds) {
 function rasterLayer(id) {
   return { id, type: "raster", source: id,
     paint: { "raster-resampling": "linear", "raster-fade-duration": 0 } };
+}
+
+function streetLayers(language) {
+  const source = { source: "shortbread" };
+  const majorRoad = ["in", ["get", "kind"],
+    ["literal", ["motorway", "trunk", "primary", "secondary", "tertiary"]]];
+  const minorRoad = ["in", ["get", "kind"],
+    ["literal", ["residential", "unclassified", "living_street", "service"]]];
+  const roadWidth = ["interpolate", ["exponential", 1.4], ["zoom"], 5, 0.5, 11, 2.5, 16, 10, 19, 24];
+  const textLayout = {
+    "text-field": boundaryLabelExpression(language),
+    "text-font": ["noto_sans_regular"]
+  };
+  const textPaint = { "text-color": "#46534b", "text-halo-color": "#f9f7ef", "text-halo-width": 1.5 };
+  return [
+    {
+      id: "rivers", type: "line", ...source, "source-layer": "water_lines", minzoom: 9,
+      paint: { "line-color": "#a8ccdf", "line-width": ["interpolate", ["linear"], ["zoom"], 9, 1, 16, 3] }
+    },
+    {
+      id: "buildings", type: "fill", ...source, "source-layer": "buildings", minzoom: 14,
+      paint: { "fill-color": "#ded8cc", "fill-outline-color": "#c9c0b0" }
+    },
+    {
+      id: "minor-roads", type: "line", ...source, "source-layer": "streets", minzoom: 12,
+      filter: minorRoad, layout: { "line-cap": "round", "line-join": "round" },
+      paint: { "line-color": "#ffffff", "line-width": ["interpolate", ["exponential", 1.4], ["zoom"], 12, 1, 16, 6, 19, 16] }
+    },
+    {
+      id: "road-casing", type: "line", ...source, "source-layer": "streets", filter: majorRoad,
+      layout: { "line-cap": "round", "line-join": "round" },
+      paint: { "line-color": "#c9b99b",
+        "line-width": ["interpolate", ["exponential", 1.4], ["zoom"], 5, 2, 11, 4, 16, 11.5, 19, 25.5] }
+    },
+    {
+      id: "major-roads", type: "line", ...source, "source-layer": "streets", filter: majorRoad,
+      layout: { "line-cap": "round", "line-join": "round" },
+      paint: { "line-color": ["match", ["get", "kind"], ["motorway", "trunk"], "#f0c580", "#fff1c8"],
+        "line-width": roadWidth }
+    },
+    {
+      id: "paths", type: "line", ...source, "source-layer": "streets", minzoom: 14,
+      filter: ["in", ["get", "kind"], ["literal", ["path", "footway", "pedestrian", "track", "cycleway"]]],
+      paint: { "line-color": "#b9a68b", "line-width": 1.2, "line-dasharray": [2, 2] }
+    },
+    {
+      id: "railways", type: "line", ...source, "source-layer": "streets", minzoom: 10,
+      filter: ["==", ["get", "rail"], true],
+      paint: { "line-color": "#a6a5a0", "line-width": 1, "line-dasharray": [3, 2] }
+    },
+    {
+      id: "road-labels", type: "symbol", ...source, "source-layer": "street_labels", minzoom: 13,
+      layout: { ...textLayout, "symbol-placement": "line", "text-size": 11, "text-max-angle": 30 },
+      paint: textPaint
+    },
+    {
+      id: "place-labels", type: "symbol", ...source, "source-layer": "place_labels", minzoom: 4,
+      layout: { ...textLayout,
+        "text-size": ["interpolate", ["linear"], ["zoom"],
+          4, ["match", ["get", "kind"], "city", 12, 10],
+          12, ["match", ["get", "kind"], "city", 17, "town", 14, 12]],
+        "text-padding": 5,
+        "symbol-sort-key": ["match", ["get", "kind"], "city", 0, "town", 1, "village", 2, 3] },
+      paint: textPaint
+    }
+  ];
 }

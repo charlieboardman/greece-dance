@@ -9,6 +9,7 @@ import {
   boundaryLabelExpression,
   createMapStyle,
   BASEMAP_BOUNDS,
+  mapMaxZoom,
   MAP_OPTIONS
 } from "./map-styles.js";
 import {
@@ -170,7 +171,7 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
     center: [26.1, 39.25],
     zoom: 6,
     minZoom: 0,
-    maxZoom: maxMapZoom,
+    maxZoom: mapMaxZoom(selectedMapOption),
     attributionControl: false,
     renderWorldCopies: false,
     dragRotate: false,
@@ -216,9 +217,7 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
       renderVillages(els.search.value);
     }
     renderVillageInfoPopup();
-    if (languageChanged && selectedMapOption === "boundaries" && map.getLayer("country-labels")) {
-      map.setLayoutProperty("country-labels", "text-field", boundaryLabelExpression(language));
-    }
+    if (languageChanged) updateBasemapLanguage();
     scheduleMapLabelLayout();
     try { localStorage.setItem("greek-folk-dance-map-language", language); } catch {}
   }
@@ -228,10 +227,17 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
   });
 
   els.mapOption.value = selectedMapOption;
+  function updateBasemapLanguage() {
+    for (const id of ["country-labels", "place-labels", "road-labels"]) {
+      if (map.getLayer(id)) map.setLayoutProperty(id, "text-field", boundaryLabelExpression(mapLanguage));
+    }
+  }
+  map.on("style.load", updateBasemapLanguage);
   els.mapOption.addEventListener("change", () => {
     const option = els.mapOption.value;
     if (!supportedMapOptions.has(option) || option === selectedMapOption) return;
     selectedMapOption = option;
+    map.setMaxZoom(mapMaxZoom(option));
     map.setStyle(selectedMapStyle());
     try { localStorage.setItem("greek-folk-dance-map-option", option); } catch {}
   });
