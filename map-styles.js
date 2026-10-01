@@ -4,6 +4,9 @@ export const MAP_OPTIONS = [
   { id: "boundaries", label: "Boundaries" }
 ];
 
+export const BASEMAP_BOUNDS = { south: 0, west: 0, north: 60, east: 60 };
+export const TERRAIN_DETAIL_BOUNDS = { south: 34, west: 12, north: 44, east: 48 };
+
 export function boundaryLabelExpression(language) {
   return ["coalesce", ["get", `name_${language}`], ["get", "name"]];
 }
@@ -11,26 +14,28 @@ export function boundaryLabelExpression(language) {
 export function createMapStyle(id, {
   language = "en",
   terrainUrl,
+  terrainOverviewUrl,
+  landSeaOverviewUrl,
   landSeaSegments = [],
-  bounds = { south: 34, west: 12, north: 44, east: 38 }
+  bounds = BASEMAP_BOUNDS
 } = {}) {
   if (id === "terrain") {
     return {
       version: 8,
       sources: {
-        "srtm-relief": {
-          type: "raster",
-          url: `pmtiles://${terrainUrl}`,
-          tileSize: 256
-        }
+        ...(terrainOverviewUrl ? {
+          "srtm-overview": rasterSource(terrainOverviewUrl, bounds)
+        } : {}),
+        "srtm-relief": rasterSource(terrainUrl, TERRAIN_DETAIL_BOUNDS)
       },
       layers: [
         backgroundLayer("#b4d8e9"),
+        ...(terrainOverviewUrl ? [rasterLayer("srtm-overview")] : []),
         {
           id: "srtm-relief",
           type: "raster",
           source: "srtm-relief",
-          paint: { "raster-resampling": "linear" }
+          paint: { "raster-resampling": "linear", "raster-fade-duration": 0 }
         }
       ]
     };
@@ -39,16 +44,22 @@ export function createMapStyle(id, {
   if (id === "land-sea") {
     return {
       version: 8,
-      sources: Object.fromEntries(landSeaSegments.map((segment) => [
-        `etopo-${segment.id}`,
-        {
-          type: "image",
-          url: segment.url,
-          coordinates: segment.coordinates
-        }
-      ])),
+      sources: {
+        ...(landSeaOverviewUrl ? {
+          "etopo-overview": rasterSource(landSeaOverviewUrl, bounds)
+        } : {}),
+        ...Object.fromEntries(landSeaSegments.map((segment) => [
+          `etopo-${segment.id}`,
+          {
+            type: "image",
+            url: segment.url,
+            coordinates: segment.coordinates
+          }
+        ]))
+      },
       layers: [
         backgroundLayer("#b4d8e9"),
+        ...(landSeaOverviewUrl ? [rasterLayer("etopo-overview")] : []),
         ...landSeaSegments.map((segment) => ({
           id: `etopo-${segment.id}`,
           type: "raster",
@@ -163,4 +174,14 @@ function backgroundLayer(color, id = "basemap-background") {
     type: "background",
     paint: { "background-color": color }
   };
+}
+
+function rasterSource(url, bounds) {
+  return { type: "raster", url: `pmtiles://${url}`, tileSize: 256,
+    bounds: [bounds.west, bounds.south, bounds.east, bounds.north] };
+}
+
+function rasterLayer(id) {
+  return { id, type: "raster", source: id,
+    paint: { "raster-resampling": "linear", "raster-fade-duration": 0 } };
 }

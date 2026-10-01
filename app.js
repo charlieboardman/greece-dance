@@ -1,5 +1,6 @@
 import {
   expandedVillageBounds,
+  constrainViewportToCoverage,
   localizedInfo,
   localizedName,
   sortRegionsAlphabetically
@@ -7,6 +8,7 @@ import {
 import {
   boundaryLabelExpression,
   createMapStyle,
+  BASEMAP_BOUNDS,
   MAP_OPTIONS
 } from "./map-styles.js";
 import {
@@ -100,6 +102,12 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
     "./assets/basemaps/srtm-relief/greece-srtm-relief.pmtiles",
     import.meta.url
   ).href;
+  const terrainOverviewUrl = new URL(
+    "./assets/basemaps/srtm-relief/overview.pmtiles", import.meta.url
+  ).href;
+  const landSeaOverviewUrl = new URL(
+    "./assets/basemaps/etopo-2022-hydrography/overview.pmtiles", import.meta.url
+  ).href;
   const etopoBasemapSegments = [
     {
       id: "west",
@@ -116,9 +124,17 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
         import.meta.url
       ).href,
       coordinates: [[25, 44], [38, 44], [38, 34], [25, 34]]
+    },
+    {
+      id: "far-east",
+      url: new URL(
+        "./assets/basemaps/etopo-2022-hydrography/etopo-2022-hydrography-38e-48e-34n-44n.webp",
+        import.meta.url
+      ).href,
+      coordinates: [[38, 44], [48, 44], [48, 34], [38, 34]]
     }
   ];
-  const navigationBounds = { south: 34, west: 12, north: 44, east: 38 };
+  const navigationBounds = BASEMAP_BOUNDS;
   const homeViewBounds = expandedVillageBounds(villages);
   const compactMapView = window.matchMedia("(max-width: 720px)").matches;
   const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -142,6 +158,8 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
     return createMapStyle(selectedMapOption, {
       language: mapLanguage,
       terrainUrl: reliefTilesUrl,
+      terrainOverviewUrl,
+      landSeaOverviewUrl,
       landSeaSegments: etopoBasemapSegments,
       bounds: navigationBounds
     });
@@ -350,6 +368,15 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
   setMapLanguage(mapLanguage);
   map.on("zoomend", updateMarkerScale);
   map.on("moveend resize", scheduleMapLabelLayout);
+  map.on("resize", () => {
+    // MapLibre's resize can adjust zoom for one axis without containing the
+    // other. Clamp the entire visible Mercator rectangle after that adjustment.
+    if (!map.getMaxBounds()) return;
+    const { center, zoomAdjustment } = constrainViewportToCoverage(
+      map.getBounds().toArray(), navigationBounds
+    );
+    map.jumpTo({ center, zoom: map.getZoom() + zoomAdjustment });
+  });
   scheduleMapLabelLayout();
 
   let hasFitInitialMapView = false;
@@ -363,17 +390,10 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
       duration: 0,
       retainPadding: false
     });
-    const fittedBounds = map.getBounds();
     map.setMinZoom(map.getZoom());
     map.setMaxBounds([
-      [
-        Math.min(navigationBounds.west, fittedBounds.getWest()),
-        Math.min(navigationBounds.south, fittedBounds.getSouth())
-      ],
-      [
-        Math.max(navigationBounds.east, fittedBounds.getEast()),
-        Math.max(navigationBounds.north, fittedBounds.getNorth())
-      ]
+      [navigationBounds.west, navigationBounds.south],
+      [navigationBounds.east, navigationBounds.north]
     ]);
     updateMarkerScale();
   }

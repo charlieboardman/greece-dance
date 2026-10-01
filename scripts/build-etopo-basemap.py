@@ -4,6 +4,9 @@
 from __future__ import annotations
 
 import argparse
+import io
+import sqlite3
+from concurrent.futures import ThreadPoolExecutor
 import math
 from pathlib import Path
 
@@ -65,6 +68,9 @@ def parse_args() -> argparse.Namespace:
         help="Split the output into two textures at this longitude",
     )
     parser.add_argument("--quality", type=int, default=92, help="WebP quality (default: 92)")
+    parser.add_argument("--overview-mbtiles", type=Path, help="Write a tiled overview instead of WebP textures")
+    parser.add_argument("--max-zoom", type=int, default=8, help="Overview maximum zoom")
+    parser.add_argument("--workers", type=int, default=1, help="Parallel overview tile encoders")
     return parser.parse_args()
 
 
@@ -388,6 +394,8 @@ def main() -> None:
         raise ValueError("Longitude bounds must be ordered inside -180..180")
     if not 0 <= args.quality <= 100:
         raise ValueError("WebP quality must be between 0 and 100")
+    if args.workers < 1 or not 0 <= args.max_zoom <= 11:
+        raise ValueError("Workers must be positive and overview zoom must be in 0..11")
 
     elevation, pixels_per_degree = load_elevation(args)
     shade = hillshade(elevation, pixels_per_degree, args.north)
@@ -395,7 +403,58 @@ def main() -> None:
     bounds = (args.west, args.south, args.east, args.north)
     image = add_hydrography(image, args.hydrography_dir, bounds, pixels_per_degree)
     image = reproject_web_mercator(image, args.south, args.north, pixels_per_degree)
-    save_outputs(image, args)
+    if args.overview_mbtiles:
+        save_overview(image, args)
+    else:
+        save_outputs(image, args)
+
+
+def save_overview(image: Image.Image, args: argparse.Namespace) -> None:
+    """Tile the Mercator image so phones fetch/decode only visible coverage."""
+    path = args.overview_mbtiles
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        path.unlink()
+    image = image.convert("RGBA")
+    north_y, south_y = mercator_y(args.north), mercator_y(args.south)
+
+    def tile_x(longitude, zoom):
+        return (longitude + 180) / 360 * (1 << zoom)
+
+    def tile_y(latitude, zoom):
+        return (1 - mercator_y(latitude) / math.pi) / 2 * (1 << zoom)
+
+    def encode_tile(position):
+        zoom, x, y = position
+        count = 1 << zoom
+        west, east = x / count * 360 - 180, (x + 1) / count * 360 - 180
+        north = math.pi * (1 - 2 * y / count)
+        south = math.pi * (1 - 2 * (y + 1) / count)
+        extent = ((west - args.west) / (args.east - args.west) * image.width,
+                  (north_y - north) / (north_y - south_y) * image.height,
+                  (east - args.west) / (args.east - args.west) * image.width,
+                  (north_y - south) / (north_y - south_y) * image.height)
+        tile = image.transform((256, 256), Image.Transform.EXTENT, extent, Image.Resampling.BILINEAR)
+        output = io.BytesIO()
+        tile.save(output, "WEBP", quality=args.quality, method=6, exact=True)
+        return zoom, x, count - 1 - y, output.getvalue()
+
+    with sqlite3.connect(path) as connection, ThreadPoolExecutor(max_workers=args.workers) as pool:
+        connection.execute("CREATE TABLE metadata (name TEXT PRIMARY KEY, value TEXT NOT NULL)")
+        connection.execute("CREATE TABLE tiles (zoom_level INTEGER, tile_column INTEGER, tile_row INTEGER, tile_data BLOB)")
+        metadata = {"name": "ETOPO 2022 and Natural Earth overview", "format": "webp",
+                    "type": "baselayer", "version": "1", "minzoom": "0", "maxzoom": str(args.max_zoom),
+                    "bounds": f"{args.west},{args.south},{args.east},{args.north}"}
+        connection.executemany("INSERT INTO metadata VALUES (?, ?)", metadata.items())
+        for zoom in range(args.max_zoom + 1):
+            positions = [(zoom, x, y)
+                         for y in range(math.floor(tile_y(args.north, zoom)), math.ceil(tile_y(args.south, zoom)))
+                         for x in range(math.floor(tile_x(args.west, zoom)), math.ceil(tile_x(args.east, zoom)))]
+            connection.executemany("INSERT INTO tiles VALUES (?, ?, ?, ?)", pool.map(encode_tile, positions))
+            connection.commit()
+            print(f"Overview z{zoom}: {len(positions):,} tiles", flush=True)
+        connection.execute("CREATE UNIQUE INDEX tile_index ON tiles (zoom_level, tile_column, tile_row)")
+    print(f"Wrote {path} ({path.stat().st_size / 1_000_000:.1f} MB)", flush=True)
 
 
 if __name__ == "__main__":

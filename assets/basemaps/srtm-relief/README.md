@@ -1,21 +1,28 @@
 # SRTM land-relief basemap
 
-`greece-srtm-relief.pmtiles` is the atlas's static, range-addressable raster
-basemap. It covers 12°E–38°E and 34°N–44°N at zoom levels 0–11. The highest
-zoom is rendered from 3 arc-second (roughly 90 m) land elevation; the sea is a
-single flat color, with no bathymetry. The browser fetches only the header,
-index, and visible WebP tiles from this archive rather than downloading all
-46 MB on each visit.
+Two static, range-addressable raster archives form the terrain basemap:
+
+- `overview.pmtiles`: 0°E–60°E and 0°N–60°N, zoom levels 0–8. This generous
+  rectangle covers portrait phone home views and navigation beyond the villages.
+- `greece-srtm-relief.pmtiles`: 12°E–48°E and 34°N–44°N, zoom levels 0–11.
+  This retains the original detailed coverage and extends it east past all
+  current villages. The highest zoom uses 3 arc-second (roughly 90 m) elevation.
+
+The detailed archive overlays the overview. Beyond the detailed rectangle,
+the browser enlarges overview tiles when zooming in. Boundary tiles have
+transparent pixels outside their crop so detail never erases overview terrain.
+The sea is a single flat color, with no bathymetry. The browser fetches only
+headers, indexes, and visible WebP tiles, rather than entire archives.
+
+All map styles and camera limits use `BASEMAP_BOUNDS` in `map-styles.js`.
+Camera limits account for the viewport, keeping visible edges inside the built
+coverage even on unusually tall screens. Such screens can require a closer
+view than the initial fit of all villages.
 
 The terrain comes from NASA's version-3 SRTMGL3S product. Natural Earth's
 1:10m lakes and rivers are drawn over it, along with its coastline at overview
 zooms. At deep zooms the coastline follows the more detailed SRTM land mask.
-The resulting archive contains 15,037 addressed tiles and 8,365 distinct tile
-images. Its SHA-256 is:
-
-```text
-4160acb2a2e89f79cb4ec7664b80eaf11840e0a4c9c7de1b263dccb687a46b5e  greece-srtm-relief.pmtiles
-```
+Build outputs and source inputs have checksums in this directory's manifests.
 
 ## Sources and rights
 
@@ -24,12 +31,12 @@ provides one signed 16-bit, 1201×1201 elevation grid per one-degree land
 granule. It is a work of the United States government and is not subject to
 copyright in the United States. NASA's canonical download requires a free
 Earthdata login; these build inputs were downloaded without modification from
-the public `https://srtm.fasma.org/` mirror. The exact 200 source archive names
+the public `https://srtm.fasma.org/` mirror. The exact 3,159 source archive names
 and checksums are in [`SRTMGL3S-SHA256SUMS`](SRTMGL3S-SHA256SUMS). That
 manifest's SHA-256 is
-`c01fa98b35b4cce653d7b55e60ad3edaa5ba18099e3b3ba5af813d157f28c6c4`.
-Granules absent from the mirror in this crop are open ocean and are rendered
-as water.
+`b6b8c5b117109f628e5446dac709f019658ef380b434e934d98265a87dbe1cf8`.
+The build uses all listed granules within 0–60°E and 0–60°N. Missing granules
+are initialized as water, so download every listed input before rendering.
 
 Natural Earth inputs:
 
@@ -59,8 +66,8 @@ python3 scripts/build-srtm-basemap.py \
   path/to/srtm-hgt \
   path/to/natural-earth-shapefiles \
   /tmp/greece-srtm-relief.mbtiles \
-  --west 12 --south 34 --east 38 --north 44 \
-  --min-zoom 0 --max-zoom 11 --quality 76 \
+  --west 12 --south 34 --east 48 --north 44 \
+  --min-zoom 0 --max-zoom 11 --quality 76 --workers 16 \
   --work-dir /tmp/national-dance-ministry-map-srtm-work
 
 go-pmtiles convert \
@@ -69,8 +76,21 @@ go-pmtiles convert \
 
 go-pmtiles verify \
   assets/basemaps/srtm-relief/greece-srtm-relief.pmtiles
+
+python3 scripts/build-srtm-basemap.py \
+  path/to/srtm-hgt \
+  path/to/natural-earth-shapefiles \
+  /tmp/srtm-overview.mbtiles \
+  --west 0 --south 0 --east 60 --north 60 \
+  --min-zoom 0 --max-zoom 8 --quality 76 --workers 16 \
+  --work-dir /tmp/national-dance-ministry-map-overview-work
+
+go-pmtiles convert /tmp/srtm-overview.mbtiles \
+  assets/basemaps/srtm-relief/overview.pmtiles
+go-pmtiles verify assets/basemaps/srtm-relief/overview.pmtiles
 ```
 
-The work directory holds a roughly 750 MB memory-mapped elevation mosaic. The
+The work directories hold roughly 1 GB (detail) and 10.4 GB (overview)
+memory-mapped elevation mosaics. The
 raw SRTM granules and intermediate MBTiles file are intentionally not
 committed.

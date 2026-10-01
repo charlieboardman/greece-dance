@@ -41,3 +41,23 @@ export function sortRegionsAlphabetically(regions, language = "en") {
     || collator.compare(first.id, second.id)
   );
 }
+
+export function constrainViewportToCoverage([[west, south], [east, north]], coverage) {
+  const mercatorY = latitude => Math.asinh(Math.tan(latitude * Math.PI / 180));
+  const coverageSouth = mercatorY(coverage.south);
+  const coverageNorth = mercatorY(coverage.north);
+  const viewSouth = mercatorY(south);
+  const viewNorth = mercatorY(north);
+  const scale = Math.max(1, (east - west) / (coverage.east - coverage.west),
+    (viewNorth - viewSouth) / (coverageNorth - coverageSouth));
+  const halfWidth = (east - west) / scale / 2;
+  const halfHeight = (viewNorth - viewSouth) / scale / 2;
+  const clamp = (value, minimum, maximum) => Math.max(minimum, Math.min(maximum, value));
+  const longitude = clamp((west + east) / 2, coverage.west + halfWidth, coverage.east - halfWidth);
+  const latitudeY = clamp((viewSouth + viewNorth) / 2,
+    coverageSouth + halfHeight, coverageNorth - halfHeight);
+  return {
+    center: [longitude, Math.atan(Math.sinh(latitudeY)) * 180 / Math.PI],
+    zoomAdjustment: Math.log2(scale)
+  };
+}

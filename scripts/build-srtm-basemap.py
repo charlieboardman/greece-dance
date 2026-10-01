@@ -9,6 +9,7 @@ import math
 import re
 import sqlite3
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -63,6 +64,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--min-zoom", type=int, default=0)
     parser.add_argument("--max-zoom", type=int, default=11)
     parser.add_argument("--quality", type=int, default=76, help="WebP quality (default: 76)")
+    parser.add_argument("--workers", type=int, default=1, help="Parallel WebP encoders")
     parser.add_argument(
         "--work-dir",
         type=Path,
@@ -425,12 +427,17 @@ def render_pyramid(
     args: argparse.Namespace,
     hydrography: tuple[list[Feature], list[Feature], list[Feature]],
 ) -> None:
-    lakes, coastlines, rivers = hydrography
     total_tiles = sum(
         (bounds[2] - bounds[0] + 1) * (bounds[3] - bounds[1] + 1)
         for zoom in range(args.min_zoom, args.max_zoom + 1)
         for bounds in [tile_range(args, zoom)]
     )
+    with ThreadPoolExecutor(max_workers=args.workers) as encoders:
+        render_rows(connection, mosaic, args, hydrography, encoders, total_tiles)
+
+
+def render_rows(connection, mosaic, args, hydrography, encoders, total_tiles):
+    lakes, coastlines, rivers = hydrography
     completed = 0
     for zoom in range(args.min_zoom, args.max_zoom + 1):
         x_min, y_min, x_max, y_max = tile_range(args, zoom)
@@ -440,12 +447,25 @@ def render_pyramid(
             strip = add_hydrography(
                 strip, zoom, x_min, x_max, y, lakes, coastlines, rivers
             )
-            records = []
+            # Boundary tiles must remain transparent outside the source crop,
+            # so a detailed regional layer cannot paint water over its overview.
+            xs = np.arange(x_min * TILE_SIZE, (x_max + 1) * TILE_SIZE) + 0.5
+            ys = np.arange(y * TILE_SIZE, (y + 1) * TILE_SIZE) + 0.5
+            world = TILE_SIZE * (1 << zoom)
+            longitudes = xs / world * 360 - 180
+            latitudes = latitude_at_pixel(ys, zoom)
+            valid = ((latitudes >= args.south) & (latitudes <= args.north))[:, None] & (
+                (longitudes >= args.west) & (longitudes <= args.east)
+            )[None, :]
+            strip = strip.convert("RGBA")
+            strip.putalpha(Image.fromarray(valid.astype(np.uint8) * 255))
+            tiles = []
             for x in range(x_min, x_max + 1):
                 left = (x - x_min) * TILE_SIZE
-                tile = strip.crop((left, 0, left + TILE_SIZE, TILE_SIZE))
-                tms_row = (1 << zoom) - 1 - y
-                records.append((zoom, x, tms_row, encode_webp(tile, args.quality)))
+                tiles.append(strip.crop((left, 0, left + TILE_SIZE, TILE_SIZE)))
+            encoded = encoders.map(lambda tile: encode_webp(tile, args.quality), tiles)
+            records = [(zoom, x, (1 << zoom) - 1 - y, data)
+                       for x, data in zip(range(x_min, x_max + 1), encoded)]
             connection.executemany("INSERT INTO tiles VALUES (?, ?, ?, ?)", records)
             connection.commit()
             completed += len(records)
@@ -466,6 +486,8 @@ def main() -> None:
         raise SystemExit("Crop bounds are invalid")
     if args.min_zoom < 0 or args.max_zoom < args.min_zoom:
         raise SystemExit("Zoom range is invalid")
+    if args.workers < 1:
+        raise SystemExit("Worker count must be positive")
     args.output.parent.mkdir(parents=True, exist_ok=True)
     bounds = (args.west, args.south, args.east, args.north)
     hydrography = load_hydrography(args.hydrography_dir, bounds)

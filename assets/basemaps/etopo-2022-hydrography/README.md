@@ -1,9 +1,14 @@
 # ETOPO 2022 + Natural Earth hydrography basemap
 
-These two WebP textures form one static basemap covering 12°E–38°E and
-34°N–44°N. They are split at 25°E so neither texture exceeds 3120×3097 pixels,
-keeping them within conservative mobile WebGL texture limits. The browser does
-not contact a map provider at runtime.
+The static basemap covers 0°E–60°E and 0°N–60°N through `overview.pmtiles`
+(zoom levels 0–8). The browser loads only visible tiles, keeping decoding and
+GPU texture sizes practical on portrait phones.
+
+Three detailed WebP textures overlay 12°E–48°E and 34°N–44°N, split at 25°E
+and 38°E. None exceeds 3120×3097 pixels. The two original textures are retained;
+the third extends detail past the eastern villages. The browser does not contact
+a map provider at runtime. All styles share the coverage and camera limits in
+`map-styles.js`.
 
 The relief and bathymetry come from NOAA's 15 arc-second ETOPO 2022 surface
 model. Natural Earth's 1:10m coastline, lakes, and river layers are rendered on
@@ -12,7 +17,9 @@ saved as quality-92 WebP.
 
 ## Sources
 
-ETOPO 2022 GeoTIFF tiles:
+The complete 16-tile source list and SHA-256 checksums are in
+[`ETOPO-SHA256SUMS`](ETOPO-SHA256SUMS). Tiles have northern edges at 15°, 30°,
+45°, and 60°N and western edges at 0°, 15°, 30°, and 45°E. Original inputs:
 
 - `ETOPO_2022_v1_15s_N45E000_surface.tif` — SHA-256
   `86f7ba59e904807fee7e035ada1ad8e761fd89d658574e91efa9e0e727f8d5d0`
@@ -45,7 +52,7 @@ Natural Earth data is in the public domain under its
 ## Rebuilding
 
 Keep the downloaded GeoTIFFs in one directory and extract the Natural Earth
-archives into another. With Pillow, NumPy, and pyshp installed, run:
+archives into another. With Pillow, NumPy, pyshp, and go-pmtiles installed, run:
 
 ```bash
 python3 scripts/build-etopo-basemap.py \
@@ -53,7 +60,26 @@ python3 scripts/build-etopo-basemap.py \
   path/to/natural-earth-shapefiles \
   assets/basemaps/etopo-2022-hydrography \
   --west 12 --south 34 --east 38 --north 44 --split-longitude 25
+
+python3 scripts/build-etopo-basemap.py \
+  path/to/etopo-tiles \
+  path/to/natural-earth-shapefiles \
+  assets/basemaps/etopo-2022-hydrography \
+  --west 38 --south 34 --east 48 --north 44
+
+python3 scripts/build-etopo-basemap.py \
+  path/to/etopo-tiles \
+  path/to/natural-earth-shapefiles \
+  /tmp/etopo-output \
+  --west 0 --south 0 --east 60 --north 60 \
+  --overview-mbtiles /tmp/etopo-overview.mbtiles \
+  --max-zoom 8 --quality 92 --workers 16
+
+go-pmtiles convert /tmp/etopo-overview.mbtiles \
+  assets/basemaps/etopo-2022-hydrography/overview.pmtiles
+go-pmtiles verify assets/basemaps/etopo-2022-hydrography/overview.pmtiles
 ```
 
-The source archives and GeoTIFFs are intentionally not committed. If the
+The overview build uses a large elevation/image mosaic; allow about 32 GB of
+RAM. Source archives and GeoTIFFs are intentionally not committed. If the
 extent, split, or filenames change, update `etopoBasemapSegments` in `app.js`.

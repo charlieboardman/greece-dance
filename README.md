@@ -147,6 +147,17 @@ The original master Markdown, including its source comments, is preserved in
 `tests/fixtures/legacy-dances.md` solely for migration testing. It is no longer
 served or used as live data.
 
+Bundled basemaps cover 0–60°E and 0–60°N for portrait phone views. Terrain
+combines a tiled overview with detailed coverage through 48°E; Land & Sea
+combines a tiled overview with three detailed textures. Source manifests and
+rebuild commands are in each `assets/basemaps/` directory. Building the app
+copies these prebuilt assets; changing coverage requires regenerating the
+basemaps before a code release. An optional viewport/navigation regression is:
+
+```bash
+PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs node tests/map-browser.mjs
+```
+
 NASA SRTM, NOAA ETOPO, and Natural Earth supply the relief-map data.
 OpenStreetMap supplies the live boundary view. Marked renders village info,
 and DOMPurify sanitizes the resulting HTML. Library licenses are in `vendor/`.

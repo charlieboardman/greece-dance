@@ -1,10 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { open } from "node:fs/promises";
 
 import {
   boundaryLabelExpression,
   createMapStyle,
-  MAP_OPTIONS
+  MAP_OPTIONS,
+  BASEMAP_BOUNDS,
+  TERRAIN_DETAIL_BOUNDS
 } from "../map-styles.js";
 
 test("the map selector exposes the three intended choices", () => {
@@ -44,4 +47,44 @@ test("boundaries uses localized OpenStreetMap labels", () => {
 
 test("unknown map choices are rejected", () => {
   assert.throws(() => createMapStyle("satellite"), /Unknown map style/u);
+});
+
+test("terrain keeps the regional detail above a broad tiled overview", () => {
+  const style = createMapStyle("terrain", {
+    terrainUrl: "https://example.test/detail.pmtiles",
+    terrainOverviewUrl: "https://example.test/overview.pmtiles"
+  });
+  assert.deepEqual(style.layers.slice(1).map(layer => layer.source), ["srtm-overview", "srtm-relief"]);
+  assert.deepEqual(style.sources["srtm-overview"].bounds, [0, 0, 60, 60]);
+  assert.deepEqual(style.sources["srtm-relief"].bounds, [12, 34, 48, 44]);
+});
+
+test("land and sea places the tiled overview behind its detailed textures", () => {
+  const style = createMapStyle("land-sea", {
+    landSeaOverviewUrl: "https://example.test/overview.pmtiles",
+    landSeaSegments: [{ id: "detail", url: "detail.webp", coordinates: [[12, 44], [48, 44], [48, 34], [12, 34]] }]
+  });
+  assert.deepEqual(style.layers.slice(1).map(layer => layer.source), ["etopo-overview", "etopo-detail"]);
+  assert.deepEqual(style.sources["etopo-overview"].bounds, [0, 0, 60, 60]);
+  assert.deepEqual(createMapStyle("boundaries").sources.shortbread.bounds, [0, 0, 60, 60]);
+});
+
+test("committed terrain and land-sea archives match the advertised coverage", async () => {
+  for (const [filename, expectedBounds, maximumZoom] of [
+    ["srtm-relief/overview.pmtiles", BASEMAP_BOUNDS, 8],
+    ["etopo-2022-hydrography/overview.pmtiles", BASEMAP_BOUNDS, 8],
+    ["srtm-relief/greece-srtm-relief.pmtiles", TERRAIN_DETAIL_BOUNDS, 11]
+  ]) {
+    const file = await open(new URL(`../assets/basemaps/${filename}`, import.meta.url));
+    try {
+      const header = Buffer.alloc(127);
+      await file.read(header, 0, header.length, 0);
+      assert.equal(header.subarray(0, 7).toString(), "PMTiles", filename);
+      assert.equal(header[7], 3, filename);
+      assert.equal(header[100], 0, filename);
+      assert.equal(header[101], maximumZoom, filename);
+      assert.deepEqual([102, 106, 110, 114].map(offset => header.readInt32LE(offset) / 1e7),
+        [expectedBounds.west, expectedBounds.south, expectedBounds.east, expectedBounds.north], filename);
+    } finally { await file.close(); }
+  }
 });

@@ -10,9 +10,11 @@ try {
   for (const url of ["/", "/api/health", "/api/content", "/editor/", "/vendor/maplibre-gl.mjs"]) {
     assert.equal((await fetch(base + url)).status, 200, url);
   }
-  const response = await fetch(`${base}/assets/basemaps/srtm-relief/greece-srtm-relief.pmtiles`, { headers: { Range: "bytes=0-126" } });
-  assert.equal(response.status, 206);
-  assert.equal((await response.arrayBuffer()).byteLength, 127);
+  for (const asset of ["srtm-relief/greece-srtm-relief.pmtiles", "srtm-relief/overview.pmtiles", "etopo-2022-hydrography/overview.pmtiles"]) {
+    const response = await fetch(`${base}/assets/basemaps/${asset}`, { headers: { Range: "bytes=0-126" } });
+    assert.equal(response.status, 206, asset);
+    assert.equal((await response.arrayBuffer()).byteLength, 127, asset);
+  }
   console.log("Release smoke check passed (map content, public pages, editor assets, PMTiles byte ranges).");
 } finally {
   server.closeAllConnections();
