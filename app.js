@@ -232,7 +232,11 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
       if (map.getLayer(id)) map.setLayoutProperty(id, "text-field", boundaryLabelExpression(mapLanguage));
     }
   }
-  map.on("style.load", updateBasemapLanguage);
+  map.on("style.load", () => {
+    updateBasemapLanguage();
+    lastPlaceLabelFilter = null;
+    scheduleMapLabelLayout();
+  });
   els.mapOption.addEventListener("change", () => {
     const option = els.mapOption.value;
     if (!supportedMapOptions.has(option) || option === selectedMapOption) return;
@@ -287,6 +291,7 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
   }
 
   let labelLayoutFrame = null;
+  let lastPlaceLabelFilter = null;
   function scheduleMapLabelLayout() {
     if (labelLayoutFrame !== null) cancelAnimationFrame(labelLayoutFrame);
     labelLayoutFrame = requestAnimationFrame(() => {
@@ -319,6 +324,34 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
       );
       item.element.classList.toggle("is-collision-free", collisionFree);
     });
+    updatePlaceLabelFilter();
+  }
+
+  function updatePlaceLabelFilter() {
+    if (selectedMapOption !== "streets" || !map.getLayer("place-labels")) return;
+    const radius = 40;
+    const { clientWidth: width, clientHeight: height } = map.getContainer();
+    const polygons = villages.flatMap(village => {
+      const point = map.project(villageLngLat(village));
+      if (point.x < -radius || point.y < -radius || point.x > width + radius || point.y > height + radius) return [];
+      // Express a screen-sized circle as geography for the renderer's filter.
+      // Newly loaded tiles use the same filter, including differently spelled
+      // or historical OSM names, without matching names or changing map data.
+      const ring = Array.from({ length: 24 }, (_, index) => {
+        const angle = index / 24 * Math.PI * 2;
+        return map.unproject([point.x + Math.cos(angle) * radius,
+          point.y + Math.sin(angle) * radius]).toArray();
+      });
+      ring.push(ring[0]);
+      return [[ring]];
+    });
+    const filter = polygons.length
+      ? ["!", ["within", { type: "MultiPolygon", coordinates: polygons }]]
+      : null;
+    const serialized = JSON.stringify(filter);
+    if (serialized === lastPlaceLabelFilter) return;
+    lastPlaceLabelFilter = serialized;
+    map.setFilter("place-labels", filter);
   }
 
   function rectanglesOverlap(first, second, padding = 0) {

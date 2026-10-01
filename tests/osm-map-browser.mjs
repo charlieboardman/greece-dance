@@ -32,6 +32,39 @@ try {
   const names = await page.evaluate(() => window.testMap.queryRenderedFeatures({ layers: ["place-labels"] })
     .map(feature => feature.properties.name_en || feature.properties.name));
   assert.ok(names.some(name => /Athens|Αθήνα/.test(name)), JSON.stringify(names));
+  // Reproduce the three duplicate village labels from the screenshot.
+  await page.evaluate(() => window.testMap.jumpTo({ center: [26.28, 41.517], zoom: 12 }));
+  await page.waitForTimeout(100);
+  await page.waitForFunction(() => window.testMap.loaded() && window.testMap.getFilter("place-labels") &&
+    window.testMap.querySourceFeatures("shortbread", { sourceLayer: "place_labels" }).length > 0);
+  async function checkVillageLabelSuppression() {
+    await page.waitForFunction(() => window.testMap.loaded());
+    const labels = await page.evaluate(async () => {
+      const map = window.testMap;
+      const { regions } = await (await fetch("/api/content")).json();
+      const dots = regions.flatMap(region => [...region.villages,
+        ...region.subregions.flatMap(subregion => subregion.villages)])
+        .map(village => map.project([village.coordinates[1], village.coordinates[0]]));
+      const nearby = feature => {
+        const point = map.project(feature.geometry.coordinates);
+        return dots.some(dot => Math.hypot(dot.x - point.x, dot.y - point.y) < 35);
+      };
+      const raw = map.querySourceFeatures("shortbread", { sourceLayer: "place_labels" });
+      const rendered = map.queryRenderedFeatures({ layers: ["place-labels"] });
+      return { nearbySourceLabels: raw.filter(nearby).length,
+        nearbyRenderedLabels: rendered.filter(nearby).length, surroundingLabels: rendered.length };
+    });
+    assert.ok(labels.nearbySourceLabels >= 3, JSON.stringify(labels));
+    assert.equal(labels.nearbyRenderedLabels, 0, JSON.stringify(labels));
+    assert.ok(labels.surroundingLabels > 0, JSON.stringify(labels));
+  }
+  await checkVillageLabelSuppression();
+  await page.evaluate(() => window.testMap.jumpTo({ center: [26.285, 41.517], zoom: 11.5 }));
+  await page.waitForTimeout(100);
+  await checkVillageLabelSuppression();
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await page.waitForTimeout(100);
+  await checkVillageLabelSuppression();
   await page.evaluate(() => window.testMap.jumpTo({ center: [23.73, 37.98], zoom: 18 }));
   await page.waitForFunction(() => window.testMap.loaded() &&
     window.testMap.queryRenderedFeatures({ layers: ["buildings"] }).length > 0);
@@ -58,7 +91,7 @@ try {
   await page.waitForFunction(() => window.testMap.loaded());
   assert.equal(await page.locator(".village-icon").count(), count);
   assert.deepEqual(errors, []);
-  console.log("OSM Streets passed: real town/street/building data, deep zoom, languages, markers, switching, persistence, and mobile.");
+  console.log("OSM Streets passed: real data, duplicate-label suppression after pan/zoom/resize, surrounding towns, languages, markers, switching, persistence, and mobile.");
 } finally {
   await browser.close();
   server.closeAllConnections();
