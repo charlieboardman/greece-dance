@@ -3,8 +3,8 @@
     "en": "Grevena",
     "el": "Γρεβενά"
   },
-  "latitude": 40.084,
-  "longitude": 21.427,
   "region": "macedonia-western",
-  "subregion": null
+  "subregion": "kozani",
+  "latitude": 40.084,
+  "longitude": 21.427
 }
