@@ -39,6 +39,7 @@ try {
     window.testMap.querySourceFeatures("shortbread", { sourceLayer: "place_labels" }).length > 0);
   async function checkVillageLabelSuppression() {
     await page.waitForFunction(() => window.testMap.loaded());
+    await page.waitForTimeout(500);
     const labels = await page.evaluate(async () => {
       const map = window.testMap;
       const { regions } = await (await fetch("/api/content")).json();
@@ -65,6 +66,28 @@ try {
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.waitForTimeout(100);
   await checkVillageLabelSuppression();
+  // OSM's Elafochori center moves beyond the pixel radius at higher zoom.
+  for (const zoom of [16, 18]) {
+    await page.evaluate(zoom => window.testMap.jumpTo({ center: [26.324722, 41.441389], zoom }), zoom);
+    await page.waitForTimeout(100);
+    await page.waitForFunction(() => window.testMap.loaded());
+    await page.waitForTimeout(500);
+    const labels = await page.evaluate(() => {
+      const map = window.testMap;
+      const dot = map.project([26.324722, 41.441389]);
+      const matches = feature => feature.properties.name_en === "Elafochori";
+      const raw = map.querySourceFeatures("shortbread", { sourceLayer: "place_labels" }).filter(matches);
+      return {
+        distances: raw.map(feature => {
+          const point = map.project(feature.geometry.coordinates);
+          return Math.hypot(point.x - dot.x, point.y - dot.y);
+        }),
+        rendered: map.queryRenderedFeatures({ layers: ["place-labels"] }).filter(matches).length
+      };
+    });
+    assert.ok(labels.distances.some(distance => distance > 40), JSON.stringify(labels));
+    assert.equal(labels.rendered, 0, JSON.stringify(labels));
+  }
   await page.evaluate(() => window.testMap.jumpTo({ center: [23.73, 37.98], zoom: 18 }));
   await page.waitForFunction(() => window.testMap.loaded() &&
     window.testMap.queryRenderedFeatures({ layers: ["buildings"] }).length > 0);

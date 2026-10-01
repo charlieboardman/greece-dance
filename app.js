@@ -331,12 +331,26 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
     if (selectedMapOption !== "streets" || !map.getLayer("place-labels")) return;
     const radius = 40;
     const { clientWidth: width, clientHeight: height } = map.getContainer();
+    const nameMatches = [];
     const polygons = villages.flatMap(village => {
       const point = map.project(villageLngLat(village));
       if (point.x < -radius || point.y < -radius || point.x > width + radius || point.y > height + radius) return [];
-      // Express a screen-sized circle as geography for the renderer's filter.
-      // Newly loaded tiles use the same filter, including differently spelled
-      // or historical OSM names, without matching names or changing map data.
+      // Match either language even when OSM's town center differs from ours.
+      // Limit name matching to the local area so namesakes elsewhere stay visible.
+      const [lng, lat] = villageLngLat(village);
+      const latRadius = 2 / 111.32;
+      const lngRadius = latRadius / Math.cos(lat * Math.PI / 180);
+      const names = [...new Set(Object.values(village.names).map(name => name.toLowerCase()))];
+      nameMatches.push(["all",
+        ["any", ...["name", "name_en", "name_el"].map(property =>
+          ["in", ["downcase", ["coalesce", ["get", property], ""]], ["literal", names]])],
+        ["within", { type: "Polygon", coordinates: [[
+          [lng - lngRadius, lat - latRadius], [lng + lngRadius, lat - latRadius],
+          [lng + lngRadius, lat + latRadius], [lng - lngRadius, lat + latRadius],
+          [lng - lngRadius, lat - latRadius]
+        ]] }]
+      ]);
+      // Newly loaded tiles also use the screen-sized geographic exclusion.
       const ring = Array.from({ length: 24 }, (_, index) => {
         const angle = index / 24 * Math.PI * 2;
         return map.unproject([point.x + Math.cos(angle) * radius,
@@ -346,7 +360,7 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
       return [[ring]];
     });
     const filter = polygons.length
-      ? ["!", ["within", { type: "MultiPolygon", coordinates: polygons }]]
+      ? ["!", ["any", ["within", { type: "MultiPolygon", coordinates: polygons }], ...nameMatches]]
       : null;
     const serialized = JSON.stringify(filter);
     if (serialized === lastPlaceLabelFilter) return;
