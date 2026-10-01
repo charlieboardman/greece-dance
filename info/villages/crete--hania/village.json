@@ -1,10 +1,10 @@
 {
   "names": {
-    "en": "Hania",
+    "en": "Chania",
     "el": "Χανιά"
   },
-  "latitude": 35.512,
-  "longitude": 24.019,
   "region": "crete",
-  "subregion": null
+  "subregion": "chania",
+  "latitude": 35.512,
+  "longitude": 24.019
 }
