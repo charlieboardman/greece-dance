@@ -3,8 +3,8 @@
     "en": "Mesimeri",
     "el": "Μεσημέρι"
   },
+  "region": "macedonia-central",
+  "subregion": "edessa-2",
   "latitude": 40.793,
-  "longitude": 22.026,
-  "region": "macedonia-northern",
-  "subregion": "edessa"
+  "longitude": 22.026
 }
