@@ -1,5 +1,0 @@
-Ballos
-
-Pidihtos Ballos
-
-Vlaha
