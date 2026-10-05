@@ -3,8 +3,8 @@
     "en": "Kerkyra",
     "el": "Κέρκυρα"
   },
-  "latitude": 39.591,
-  "longitude": 19.86,
   "region": "ionian-islands",
-  "subregion": null
+  "subregion": "kerkyra",
+  "latitude": 39.591,
+  "longitude": 19.86
 }
