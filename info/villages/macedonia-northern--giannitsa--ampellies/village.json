@@ -3,8 +3,8 @@
     "en": "Ampellies",
     "el": "Αμπελείες"
   },
+  "region": "macedonia-central",
+  "subregion": "yiannitsa",
   "latitude": 40.834,
-  "longitude": 22.387,
-  "region": "macedonia-northern",
-  "subregion": "giannitsa"
+  "longitude": 22.387
 }
