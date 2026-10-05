@@ -3,8 +3,8 @@
     "en": "Skydra",
     "el": "Σκύδρα"
   },
+  "region": "macedonia-central",
+  "subregion": "edessa-2",
   "latitude": 40.767,
-  "longitude": 22.151,
-  "region": "macedonia-northern",
-  "subregion": "edessa"
+  "longitude": 22.151
 }
