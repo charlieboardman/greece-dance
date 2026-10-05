@@ -3,8 +3,8 @@
     "en": "Edessa",
     "el": "Έδεσσα"
   },
+  "region": "macedonia-central",
+  "subregion": "edessa-2",
   "latitude": 40.801,
-  "longitude": 22.05,
-  "region": "macedonia-northern",
-  "subregion": "edessa"
+  "longitude": 22.05
 }
