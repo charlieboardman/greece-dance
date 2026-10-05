@@ -3,8 +3,8 @@
     "en": "Kerasia",
     "el": "Κερασιές"
   },
+  "region": "macedonia-central",
+  "subregion": "edessa-2",
   "latitude": 40.877,
-  "longitude": 21.963,
-  "region": "macedonia-northern",
-  "subregion": "edessa"
+  "longitude": 21.963
 }
