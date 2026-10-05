@@ -3,8 +3,8 @@
     "en": "Arnissa",
     "el": "Άρνισσα"
   },
+  "region": "macedonia-central",
+  "subregion": "edessa-2",
   "latitude": 40.798,
-  "longitude": 21.835,
-  "region": "macedonia-northern",
-  "subregion": "edessa"
+  "longitude": 21.835
 }
