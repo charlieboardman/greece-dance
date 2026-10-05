@@ -3,8 +3,8 @@
     "en": "Orma",
     "el": "Όρμα"
   },
+  "region": "macedonia-central",
+  "subregion": "almopia-2",
   "latitude": 40.952,
-  "longitude": 21.926,
-  "region": "macedonia-northern",
-  "subregion": "almopia"
+  "longitude": 21.926
 }
