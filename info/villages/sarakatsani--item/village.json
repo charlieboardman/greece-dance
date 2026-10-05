@@ -1,10 +1,10 @@
 {
   "names": {
-    "en": "Κομοτηνή",
-    "el": "Βροντού"
+    "en": "Komotini",
+    "el": "Κομοτηνή"
   },
-  "latitude": 41.1192,
-  "longitude": 25.4051,
   "region": "sarakatsani",
-  "subregion": null
+  "subregion": null,
+  "latitude": 41.1192,
+  "longitude": 25.4051
 }
