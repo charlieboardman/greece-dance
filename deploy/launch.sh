@@ -38,6 +38,7 @@ else
   ln -s "$nginx_site" "$nginx_enabled"
 fi
 python3 "$(dirname "$(readlink -f "$0")")/disable-request-logs.py" "$nginx_site"
+python3 "$(dirname "$(readlink -f "$0")")/disable-request-logs.py" --all
 nginx -t
 systemctl enable --now nginx
 systemctl reload nginx
@@ -46,6 +47,7 @@ echo "Obtaining HTTPS for $hostname. DNS must point here and inbound ports 80 an
 certbot --nginx --redirect --keep-until-expiring -d "$hostname"
 # Certbot may create another HTTP redirect server; apply the defaults there too.
 python3 "$(dirname "$(readlink -f "$0")")/disable-request-logs.py" "$nginx_site"
+python3 "$(dirname "$(readlink -f "$0")")/disable-request-logs.py" --all
 nginx -t
 systemctl reload nginx
 systemctl enable --now certbot.timer

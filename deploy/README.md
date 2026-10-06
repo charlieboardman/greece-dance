@@ -189,14 +189,15 @@ Never edit a published generation in place. Operation records are retained to
 support retries; they contain private draft content and must not be web-served.
 
 Production does not retain app stdout/stderr or Nginx request/access/error logs
-for the managed map site by default. Compose uses the `none` log driver, systemd
+across the droplet by default. Compose uses the `none` log driver, systemd
 discards app-service output, and the site uses `access_log off` and
 `error_log /dev/null`. Rerun `sudo ./setup.sh` from the updated checkout once to
 apply these infrastructure defaults to an existing installation. Setup preserves
-credentials and HTTPS configuration, updates all server blocks in the managed
-site (including Certbot redirects), validates Nginx, and reloads it. An invalid
-configuration is restored before failing. Included custom configuration must not
-add logging directives of its own.
+credentials and HTTPS configuration, updates Nginx's global configuration and
+all active included configurations (including the default site and Certbot
+redirects), validates Nginx, and reloads it. This applies to every Nginx site on
+the droplet. All changed configurations are restored if validation fails.
+Rerun setup after adding new configurations that enable logging.
 
 Deployment diagnostics and operating-system service lifecycle events remain
 available; use health checks and `sudo podman ps` to inspect the running app.

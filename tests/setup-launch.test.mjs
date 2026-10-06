@@ -22,6 +22,10 @@ async function fixture(t) {
     await writeFile(script, `#!/usr/bin/env bash
 set -eu
 printf '%s %s\\n' '${command}' "$*" >> "$TEST_LOG"
+if [[ '${command}' == nginx && "$1" == '-T' ]]; then
+  echo "# configuration file $GREECE_DANCE_NGINX:"
+  cat "$GREECE_DANCE_NGINX"
+fi
 if [[ '${command}' == certbot ]]; then
   grep -q '^EDITOR_ENABLED=false$' "$GREECE_DANCE_ETC/app.env"
   [[ "\u0024{FAIL_CERT:-}" != 1 ]]
@@ -69,7 +73,7 @@ test("launch provisions HTTPS before enabling the editor and is rerunnable", asy
   const site = await readFile(env.GREECE_DANCE_NGINX, "utf8");
   assert.doesNotMatch(site, /\/var\/log/u);
   assert.equal((site.match(/access_log off;/gu) || []).length, 2);
-  assert.equal((site.match(/error_log \/dev\/null;/gu) || []).length, 2);
+  assert.equal((site.match(/error_log \/dev\/null;/gu) || []).length, 3);
 });
 
 for (const failure of ["FAIL_CERT", "FAIL_DEPLOY", "FAIL_HTTPS"]) {

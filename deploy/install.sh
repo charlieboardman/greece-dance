@@ -35,6 +35,7 @@ chown root:root /srv/greece-dance /srv/greece-dance/releases
 rm -f /etc/sudoers.d/greece-dance-deploy
 if [[ ! -f /etc/nginx/sites-available/greece-dance ]]; then install -m 0644 "$source_directory/nginx.conf" /etc/nginx/sites-available/greece-dance; fi
 python3 "$source_directory/disable-request-logs.py" /etc/nginx/sites-available/greece-dance
+python3 "$source_directory/disable-request-logs.py" --all
 if systemctl is-active --quiet nginx; then
   nginx -t
   systemctl reload nginx

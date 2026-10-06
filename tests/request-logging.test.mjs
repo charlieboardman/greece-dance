@@ -15,11 +15,11 @@ async function fixture(t) {
   t.after(() => rm(root, { recursive: true, force: true }));
   const bin = path.join(root, "bin");
   await mkdir(bin);
-  await writeFile(path.join(bin, "nginx"), '#!/bin/sh\n[ "$1" = "-t" ]\nexit "${FAIL_NGINX:-0}"\n');
+  await writeFile(path.join(bin, "nginx"), '#!/bin/sh\nif [ "$1" = "-T" ]; then cat "$NGINX_DUMP"; exit 0; fi\n[ "$1" = "-t" ]\nexit "${FAIL_NGINX:-0}"\n');
   await chmod(path.join(bin, "nginx"), 0o755);
   const site = path.join(root, "site");
   const env = { ...process.env, PATH: `${bin}:${process.env.PATH}` };
-  return { site, run: extra => exec("python3", [script, site], { env: { ...env, ...extra } }) };
+  return { site, run: (extra, args = [site]) => exec("python3", [script, ...args], { env: { ...env, ...extra } }) };
 }
 
 test("existing HTTPS and redirect sites disable all explicit log destinations without changing TLS or routing", async t => {
@@ -74,4 +74,33 @@ test("malformed configuration remains untouched", async t => {
   await writeFile(site, original);
   await assert.rejects(run());
   assert.equal(await readFile(site, "utf8"), original);
+});
+
+test("global migration disables inherited default-site logs and included overrides, and restores every file on failure", async t => {
+  const { site, run } = await fixture(t);
+  const defaultSite = site + '-default';
+  const snippet = site + '-snippet';
+  const dump = site + '-dump';
+  const sources = new Map([
+    [site, 'events {}\nhttp { include sites-enabled/*; }\n'],
+    [defaultSite, 'server { listen 80 default_server; access_log /var/log/nginx/default.log; location / { error_log stderr; } }\n'],
+    [snippet, 'error_log syslog:server=unix:/dev/log;\naccess_log /var/log/nginx/shared.log;\n']
+  ]);
+  for (const [file, source] of sources) await writeFile(file, source);
+  await writeFile(dump, [...sources].map(([file, source]) => `# configuration file ${file}:\n${source}`).join('\n'));
+  await assert.rejects(run({ NGINX_DUMP: dump, FAIL_NGINX: '1' }, ['--all']));
+  for (const [file, source] of sources) assert.equal(await readFile(file, 'utf8'), source);
+  await run({ NGINX_DUMP: dump }, ['--all']);
+  const global = await readFile(site, 'utf8');
+  assert.match(global, /^error_log \/dev\/null;/u);
+  assert.match(global, /http \{\n    access_log off;\n    error_log \/dev\/null;/u);
+  for (const file of sources.keys()) {
+    const result = await readFile(file, 'utf8');
+    assert.doesNotMatch(result, /\/var\/log|syslog:|error_log stderr/u);
+    assert.match(result, /error_log \/dev\/null;/u);
+    assert.match(result, /access_log off;/u);
+  }
+  const snapshot = await Promise.all([...sources.keys()].map(file => readFile(file, 'utf8')));
+  await run({ NGINX_DUMP: dump }, ['--all']);
+  assert.deepEqual(await Promise.all([...sources.keys()].map(file => readFile(file, 'utf8'))), snapshot);
 });
