@@ -13,6 +13,8 @@ RestartSec=3
 TimeoutStopSec=30
 KillMode=mixed
 UMask=0077
+StandardOutput=null
+StandardError=null
 
 [Install]
 WantedBy=multi-user.target

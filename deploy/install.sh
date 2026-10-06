@@ -23,6 +23,7 @@ install -d -m 0755 /usr/local/lib/greece-dance/deploy /usr/local/libexec
 for file in common.sh upgrade.sh rollback.sh runtime.sh update-info.sh; do install -m 0755 "$source_directory/$file" /usr/local/lib/greece-dance/deploy/; done
 install -m 0755 "$source_directory/restart.sh" /usr/local/libexec/greece-dance-restart
 for file in Containerfile containerignore compose.yaml; do install -m 0644 "$source_directory/$file" /usr/local/lib/greece-dance/deploy/; done
+install -m 0644 "$source_directory/disable-request-logs.py" /usr/local/lib/greece-dance/deploy/
 for file in greece-dance.service greece-dance-update.service greece-dance-update.timer; do install -m 0644 "$source_directory/$file" /etc/systemd/system/; done
 if [[ ! -f /etc/greece-dance/app.env ]]; then install -m 0640 -o root -g greece-dance "$source_directory/app.env.example" /etc/greece-dance/app.env; fi
 if [[ ! -f /etc/greece-dance/deploy.env ]]; then install -m 0644 "$source_directory/deploy.env.example" /etc/greece-dance/deploy.env; fi
@@ -33,5 +34,10 @@ chmod 0755 /etc/greece-dance
 chown root:root /srv/greece-dance /srv/greece-dance/releases
 rm -f /etc/sudoers.d/greece-dance-deploy
 if [[ ! -f /etc/nginx/sites-available/greece-dance ]]; then install -m 0644 "$source_directory/nginx.conf" /etc/nginx/sites-available/greece-dance; fi
+python3 "$source_directory/disable-request-logs.py" /etc/nginx/sites-available/greece-dance
+if systemctl is-active --quiet nginx; then
+  nginx -t
+  systemctl reload nginx
+fi
 systemctl daemon-reload
 echo 'Podman Compose service definitions installed. Full setup will now configure credentials, deployment and HTTPS.'

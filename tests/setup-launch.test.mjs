@@ -25,6 +25,10 @@ printf '%s %s\\n' '${command}' "$*" >> "$TEST_LOG"
 if [[ '${command}' == certbot ]]; then
   grep -q '^EDITOR_ENABLED=false$' "$GREECE_DANCE_ETC/app.env"
   [[ "\u0024{FAIL_CERT:-}" != 1 ]]
+  # Simulate the additional redirect server created during HTTPS provisioning.
+  if ! grep -q 'listen 80' "$GREECE_DANCE_NGINX"; then
+    echo 'server { listen 80; access_log /var/log/nginx/redirect.log; return 301 https://$host$request_uri; }' >> "$GREECE_DANCE_NGINX"
+  fi
 fi
 if [[ '${command}' == systemctl && "$*" == 'start greece-dance-update.service' && "\u0024{FAIL_DEPLOY:-}" == 1 ]]; then exit 1; fi
 if [[ '${command}' == curl ]]; then
@@ -62,6 +66,10 @@ test("launch provisions HTTPS before enabling the editor and is rerunnable", asy
   assert.match(log, /disable --now greece-dance-update.timer/u);
   assert.doesNotMatch(log, /enable --now greece-dance-update.timer/u);
   assert.match(log, /enable --now certbot.timer/u);
+  const site = await readFile(env.GREECE_DANCE_NGINX, "utf8");
+  assert.doesNotMatch(site, /\/var\/log/u);
+  assert.equal((site.match(/access_log off;/gu) || []).length, 2);
+  assert.equal((site.match(/error_log \/dev\/null;/gu) || []).length, 2);
 });
 
 for (const failure of ["FAIL_CERT", "FAIL_DEPLOY", "FAIL_HTTPS"]) {

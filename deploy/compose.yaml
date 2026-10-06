@@ -3,6 +3,8 @@ services:
     image: ${GREECE_DANCE_IMAGE:?Run setup or the deployment service first}
     user: "${GREECE_DANCE_UID:?}:${GREECE_DANCE_GID:?}"
     read_only: true
+    logging:
+      driver: "none"
     cap_drop:
       - ALL
     security_opt:

@@ -37,12 +37,17 @@ if [[ -e "$nginx_enabled" || -L "$nginx_enabled" ]]; then
 else
   ln -s "$nginx_site" "$nginx_enabled"
 fi
+python3 "$(dirname "$(readlink -f "$0")")/disable-request-logs.py" "$nginx_site"
 nginx -t
 systemctl enable --now nginx
 systemctl reload nginx
 echo "Obtaining HTTPS for $hostname. DNS must point here and inbound ports 80 and 443 must be open."
 # Certbot handles its own email/terms prompts and retains matching certificates.
 certbot --nginx --redirect --keep-until-expiring -d "$hostname"
+# Certbot may create another HTTP redirect server; apply the defaults there too.
+python3 "$(dirname "$(readlink -f "$0")")/disable-request-logs.py" "$nginx_site"
+nginx -t
+systemctl reload nginx
 systemctl enable --now certbot.timer
 curl --fail --silent --show-error --retry 5 --retry-delay 1 "https://$hostname/api/health" |
   python3 -c 'import json,sys; sys.exit(0 if json.load(sys.stdin).get("ok") is True else 1)'

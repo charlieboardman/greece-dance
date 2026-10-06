@@ -165,7 +165,6 @@ sudo ./update-info.sh
 # Or use the installed service:
 sudo systemctl start greece-dance-update.service
 sudo journalctl -u greece-dance-update.service -f
-sudo journalctl -u greece-dance.service -f
 ```
 
 Manual rollback:
@@ -188,6 +187,23 @@ Old content generations are retained for inspection and recovery; remove unused
 generations during maintenance only after confirming no running app needs them.
 Never edit a published generation in place. Operation records are retained to
 support retries; they contain private draft content and must not be web-served.
+
+Production does not retain app stdout/stderr or Nginx request/access/error logs
+for the managed map site by default. Compose uses the `none` log driver, systemd
+discards app-service output, and the site uses `access_log off` and
+`error_log /dev/null`. Rerun `sudo ./setup.sh` from the updated checkout once to
+apply these infrastructure defaults to an existing installation. Setup preserves
+credentials and HTTPS configuration, updates all server blocks in the managed
+site (including Certbot redirects), validates Nginx, and reloads it. An invalid
+configuration is restored before failing. Included custom configuration must not
+add logging directives of its own.
+
+Deployment diagnostics and operating-system service lifecycle events remain
+available; use health checks and `sudo podman ps` to inspect the running app.
+GitHub content history and private editor operation records remain necessary
+for publication, conflict detection and retries. They do not record visitor IPs.
+Editor rate limits and sessions use temporary in-memory state. These defaults
+do not delete historical logs or control logging by external providers.
 
 ## Local verification
 
