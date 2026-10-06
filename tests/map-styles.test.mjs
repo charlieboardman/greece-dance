@@ -11,10 +11,9 @@ import {
   mapMaxZoom
 } from "../map-styles.js";
 
-test("the map selector exposes four choices including OSM Streets", () => {
+test("the map selector exposes three choices including OSM Streets", () => {
   assert.deepEqual(MAP_OPTIONS, [
     { id: "terrain", label: "Terrain" },
-    { id: "land-sea", label: "Land & Sea" },
     { id: "boundaries", label: "Boundaries" },
     { id: "streets", label: "OSM Streets" }
   ]);
@@ -32,7 +31,6 @@ test("OSM Streets displays surrounding towns and street detail with localized la
   assert.equal(style.sources.shortbread.maxzoom, 14);
   assert.equal(mapMaxZoom("streets"), 19);
   assert.equal(mapMaxZoom("terrain"), 11);
-  assert.equal(mapMaxZoom("land-sea"), 11);
   assert.equal(mapMaxZoom("boundaries"), 11);
 });
 
@@ -41,17 +39,6 @@ test("terrain uses the range-addressable SRTM PMTiles file", () => {
 
   assert.equal(style.sources["srtm-relief"].url, "pmtiles://https://example.test/terrain.pmtiles");
   assert.equal(style.layers[1].source, "srtm-relief");
-});
-
-test("land and sea creates one image source and raster layer per segment", () => {
-  const segments = [
-    { id: "west", url: "west.webp", coordinates: [[1, 2], [3, 2], [3, 0], [1, 0]] },
-    { id: "east", url: "east.webp", coordinates: [[3, 2], [5, 2], [5, 0], [3, 0]] }
-  ];
-  const style = createMapStyle("land-sea", { landSeaSegments: segments });
-
-  assert.deepEqual(Object.keys(style.sources), ["etopo-west", "etopo-east"]);
-  assert.deepEqual(style.layers.slice(1).map((layer) => layer.source), ["etopo-west", "etopo-east"]);
 });
 
 test("boundaries uses localized OpenStreetMap labels", () => {
@@ -77,20 +64,9 @@ test("terrain keeps the regional detail above a broad tiled overview", () => {
   assert.deepEqual(style.sources["srtm-relief"].bounds, [12, 34, 48, 44]);
 });
 
-test("land and sea places the tiled overview behind its detailed textures", () => {
-  const style = createMapStyle("land-sea", {
-    landSeaOverviewUrl: "https://example.test/overview.pmtiles",
-    landSeaSegments: [{ id: "detail", url: "detail.webp", coordinates: [[12, 44], [48, 44], [48, 34], [12, 34]] }]
-  });
-  assert.deepEqual(style.layers.slice(1).map(layer => layer.source), ["etopo-overview", "etopo-detail"]);
-  assert.deepEqual(style.sources["etopo-overview"].bounds, [0, 0, 60, 60]);
-  assert.deepEqual(createMapStyle("boundaries").sources.shortbread.bounds, [0, 0, 60, 60]);
-});
-
-test("committed terrain and land-sea archives match the advertised coverage", async () => {
+test("committed terrain archives match the advertised coverage", async () => {
   for (const [filename, expectedBounds, maximumZoom] of [
     ["srtm-relief/overview.pmtiles", BASEMAP_BOUNDS, 8],
-    ["etopo-2022-hydrography/overview.pmtiles", BASEMAP_BOUNDS, 8],
     ["srtm-relief/greece-srtm-relief.pmtiles", TERRAIN_DETAIL_BOUNDS, 11]
   ]) {
     const file = await open(new URL(`../assets/basemaps/${filename}`, import.meta.url));

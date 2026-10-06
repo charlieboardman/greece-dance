@@ -3,7 +3,7 @@
 An interactive bilingual map with folder-based research content and a
 password-protected editor that records changes in GitHub before publishing them.
 The map uses MapLibre, bundled relief basemaps, and OpenStreetMap boundary and
-street views. **OSM Streets**, the fourth map option, shows surrounding towns,
+street views. **OSM Streets**, the third map option, shows surrounding towns,
 roads, and buildings and allows street-level zoom while retaining village notes
 and markers. It uses the public OSM vector service without an account or API key.
 
@@ -142,7 +142,7 @@ server/                     Express API, sessions, Git and GitHub App integratio
 deploy/                     Droplet install, service, update and rollback tooling
 scripts/                    Validation, migration, smoke checks and basemap tools
 tests/                      Unit and integration tests; original Markdown fixture
-assets/basemaps/            Bundled SRTM and ETOPO relief maps
+assets/basemaps/            Bundled SRTM relief maps
 vendor/                     Browser libraries and licenses
 ```
 
@@ -151,9 +151,8 @@ The original master Markdown, including its source comments, is preserved in
 served or used as live data.
 
 Bundled basemaps cover 0–60°E and 0–60°N for portrait phone views. Terrain
-combines a tiled overview with detailed coverage through 48°E; Land & Sea
-combines a tiled overview with three detailed textures. Source manifests and
-rebuild commands are in each `assets/basemaps/` directory. Building the app
+combines a tiled overview with detailed coverage through 48°E. Source manifests
+and rebuild commands are in `assets/basemaps/srtm-relief/`. Building the app
 copies these prebuilt assets; changing coverage requires regenerating the
 basemaps before a code release. An optional viewport/navigation regression is:
 
@@ -167,6 +166,6 @@ The optional detailed-map browser check requests live OSM tiles:
 PLAYWRIGHT_MODULE=/path/to/playwright/index.mjs node tests/osm-map-browser.mjs
 ```
 
-NASA SRTM, NOAA ETOPO, and Natural Earth supply the relief-map data.
+NASA SRTM and Natural Earth supply the relief-map data.
 OpenStreetMap supplies the live boundary view. Marked renders village info,
 and DOMPurify sanitizes the resulting HTML. Library licenses are in `vendor/`.

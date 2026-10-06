@@ -53,9 +53,6 @@ try {
       });
       assert.ok(contained, `All villages fit ${JSON.stringify(viewport)}`);
     }
-    await page.selectOption("#map-option", "land-sea");
-    await page.waitForFunction(() => window.testMap.loaded());
-    await checkCoverage();
     for (const center of [[0, 0], [60, 60]]) {
       await page.evaluate(center => window.testMap.jumpTo({ center }), center);
       await checkCoverage();

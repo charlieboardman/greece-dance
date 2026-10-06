@@ -106,35 +106,6 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
   const terrainOverviewUrl = new URL(
     "./assets/basemaps/srtm-relief/overview.pmtiles", import.meta.url
   ).href;
-  const landSeaOverviewUrl = new URL(
-    "./assets/basemaps/etopo-2022-hydrography/overview.pmtiles", import.meta.url
-  ).href;
-  const etopoBasemapSegments = [
-    {
-      id: "west",
-      url: new URL(
-        "./assets/basemaps/etopo-2022-hydrography/etopo-2022-hydrography-12e-25e-34n-44n.webp",
-        import.meta.url
-      ).href,
-      coordinates: [[12, 44], [25, 44], [25, 34], [12, 34]]
-    },
-    {
-      id: "east",
-      url: new URL(
-        "./assets/basemaps/etopo-2022-hydrography/etopo-2022-hydrography-25e-38e-34n-44n.webp",
-        import.meta.url
-      ).href,
-      coordinates: [[25, 44], [38, 44], [38, 34], [25, 34]]
-    },
-    {
-      id: "far-east",
-      url: new URL(
-        "./assets/basemaps/etopo-2022-hydrography/etopo-2022-hydrography-38e-48e-34n-44n.webp",
-        import.meta.url
-      ).href,
-      coordinates: [[38, 44], [48, 44], [48, 34], [38, 34]]
-    }
-  ];
   const navigationBounds = BASEMAP_BOUNDS;
   const homeViewBounds = expandedVillageBounds(villages);
   const compactMapView = window.matchMedia("(max-width: 720px)").matches;
@@ -160,8 +131,6 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
       language: mapLanguage,
       terrainUrl: reliefTilesUrl,
       terrainOverviewUrl,
-      landSeaOverviewUrl,
-      landSeaSegments: etopoBasemapSegments,
       bounds: navigationBounds
     });
   }

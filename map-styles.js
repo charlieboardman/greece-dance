@@ -1,6 +1,5 @@
 export const MAP_OPTIONS = [
   { id: "terrain", label: "Terrain" },
-  { id: "land-sea", label: "Land & Sea" },
   { id: "boundaries", label: "Boundaries" },
   { id: "streets", label: "OSM Streets" }
 ];
@@ -20,8 +19,6 @@ export function createMapStyle(id, {
   language = "en",
   terrainUrl,
   terrainOverviewUrl,
-  landSeaOverviewUrl,
-  landSeaSegments = [],
   bounds = BASEMAP_BOUNDS
 } = {}) {
   if (id === "streets") {
@@ -55,35 +52,6 @@ export function createMapStyle(id, {
           source: "srtm-relief",
           paint: { "raster-resampling": "linear", "raster-fade-duration": 0 }
         }
-      ]
-    };
-  }
-
-  if (id === "land-sea") {
-    return {
-      version: 8,
-      sources: {
-        ...(landSeaOverviewUrl ? {
-          "etopo-overview": rasterSource(landSeaOverviewUrl, bounds)
-        } : {}),
-        ...Object.fromEntries(landSeaSegments.map((segment) => [
-          `etopo-${segment.id}`,
-          {
-            type: "image",
-            url: segment.url,
-            coordinates: segment.coordinates
-          }
-        ]))
-      },
-      layers: [
-        backgroundLayer("#b4d8e9"),
-        ...(landSeaOverviewUrl ? [rasterLayer("etopo-overview")] : []),
-        ...landSeaSegments.map((segment) => ({
-          id: `etopo-${segment.id}`,
-          type: "raster",
-          source: `etopo-${segment.id}`,
-          paint: { "raster-resampling": "linear" }
-        }))
       ]
     };
   }

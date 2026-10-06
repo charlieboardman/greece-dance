@@ -29,7 +29,7 @@ try {
     assert.equal(response.status, 200);
     assert.match(await response.text(), /SIL OPEN FONT LICENSE Version 1\.1/u);
   }
-  for (const asset of ["srtm-relief/greece-srtm-relief.pmtiles", "srtm-relief/overview.pmtiles", "etopo-2022-hydrography/overview.pmtiles"]) {
+  for (const asset of ["srtm-relief/greece-srtm-relief.pmtiles", "srtm-relief/overview.pmtiles"]) {
     const response = await fetch(`${base}/assets/basemaps/${asset}`, { headers: { Range: "bytes=0-126" } });
     assert.equal(response.status, 206, asset);
     assert.equal((await response.arrayBuffer()).byteLength, 127, asset);
