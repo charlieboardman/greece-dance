@@ -4,7 +4,7 @@ Bai - Apostoli
 Tou Gamou - prosfigiko
 Souleiman
 Boukite Resvivat
-Baintouska
+Baidouska
 Raiko
 Leno Mome
 Gaida
