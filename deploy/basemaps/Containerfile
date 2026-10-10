@@ -1,0 +1,6 @@
+FROM docker.io/library/python:3.12.13-slim-bookworm
+COPY deploy/basemaps/requirements.txt /requirements.txt
+RUN pip install --no-cache-dir -r /requirements.txt
+ENV OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 PYTHONUNBUFFERED=1
+WORKDIR /source
+ENTRYPOINT ["python", "deploy/basemaps/build.py"]

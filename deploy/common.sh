@@ -11,6 +11,7 @@ fi
 : "${DEPLOY_HEALTH_ATTEMPTS:=20}"
 [[ "$DEPLOY_ROOT" = /* && "$DEPLOY_ROOT" != / ]] || { echo 'DEPLOY_ROOT must be an absolute application directory.' >&2; exit 1; }
 [[ -x "$DEPLOY_RESTART_HOOK" ]] || { echo 'A restart hook is required.' >&2; exit 1; }
+export GREECE_DANCE_BASEMAP_ROOT GREECE_DANCE_MAP_CACHE_DIR
 mkdir -p "$DEPLOY_ROOT/releases"
 exec 9>"$DEPLOY_ROOT/deploy.lock"
 flock -n 9 || { echo 'Another deployment is running; skipping.'; exit 0; }

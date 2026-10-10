@@ -1,3 +1,4 @@
+import { createMapProxy } from "./map-proxy.js";
 import express from "express";
 import session from "express-session";
 import { rateLimit } from "express-rate-limit";
@@ -9,20 +10,28 @@ import { SessionStore, verifyPassword } from "./auth.js";
 import { createLocationLookup, LocationLookupError } from "./location-lookup.js";
 
 export async function createApp({ root = fileURLToPath(new URL("../", import.meta.url)), editor = null,
+  basemapDir = process.env.BASEMAP_DIR || path.join(root, "assets/basemaps/generated"), basemapVersion = "development",
   passwordHash = "", sessionSecret = "", origin = "http://localhost:8000", production = false,
-  revision = "development", loginLimit = 10, published = null, locationLookup = createLocationLookup() } = {}) {
+  revision = "development", mapProxy = null, loginLimit = 10, published = null, locationLookup = createLocationLookup() } = {}) {
   const content = published ? (await published.snapshot()).content : await loadContent(path.join(root, "info"));
   const app = express();
   app.disable("x-powered-by");
+  const maps = mapProxy || createMapProxy({ origin });
+  app.locals.closeMaps = () => maps.close();
   if (production) app.set("trust proxy", "loopback");
   app.use((_req, res, next) => {
-    res.set({ "X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY", "Referrer-Policy": "same-origin" }); next();
+    res.set({ "X-Content-Type-Options": "nosniff", "X-Frame-Options": "DENY", "Referrer-Policy": "same-origin",
+      "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'" }); next();
+  });
+  app.use("/map-data", (req, res) => {
+    if (!["GET", "HEAD"].includes(req.method)) return res.sendStatus(405);
+    return maps.serve(req, res);
   });
   app.get("/api/health", (_req, res) => res.set("Cache-Control", "no-store").json({ ok: true, revision }));
   app.get("/api/content", async (_req, res) => {
     const live = published ? await published.snapshot() : null;
     const current = live?.content || (production ? content : await loadContent(path.join(root, "info")));
-    res.set("Cache-Control", "no-store").json({ regions: current.regions, revision: live?.revision || revision, appRevision: revision });
+    res.set("Cache-Control", "no-store").json({ regions: current.regions, revision: live?.revision || revision, appRevision: revision, basemapVersion });
   });
   const router = express.Router();
   app.use("/api/editor", router);
@@ -98,6 +107,7 @@ export async function createApp({ root = fileURLToPath(new URL("../", import.met
   app.use("/editor", (_req, res, next) => {
     res.set({ "Cache-Control": "no-store", "Content-Security-Policy": "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'" }); next();
   }, express.static(path.join(root, "editor"), { dotfiles: "deny" }));
+  app.use("/basemaps", express.static(basemapDir, { dotfiles: "deny", index: false, immutable: true, maxAge: "1y" }));
   for (const directory of ["assets", "vendor"]) {
     app.use(`/${directory}`, express.static(path.join(root, directory), { dotfiles: "deny", index: false, maxAge: "1h" }));
   }

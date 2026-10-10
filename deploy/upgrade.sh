@@ -49,13 +49,27 @@ cleanup() {
 }
 trap cleanup EXIT
 build_image() {
-  local context=$1 sha=$2 output=$3
-  podman build --pull=missing --file "$script_directory/Containerfile" \
-    --ignorefile "$script_directory/containerignore" \
-    --build-arg "RELEASE_SHA=$sha" --iidfile "$output" "$context"
+  local context=$1 sha=$2 output=$3 keep_bundled=${4:-false}
+  local ignorefile="$script_directory/containerignore"
+  if [[ "$keep_bundled" == true ]]; then
+    # Old host releases still use bundled terrain URLs. Their rollback image
+    # must retain those archives even though new releases build them separately.
+    ignorefile="$output.ignore"
+    python3 - "$script_directory/containerignore" "$ignorefile" <<'PYTHON'
+from pathlib import Path
+import sys
+source, target = map(Path, sys.argv[1:])
+target.write_text('\n'.join(line for line in source.read_text().splitlines()
+                          if line != 'assets/basemaps/**/*.pmtiles') + '\n')
+PYTHON
+  fi
+  podman build --layers --pull=missing --file "$script_directory/Containerfile" \
+    --ignorefile "$ignorefile" \
+    --build-arg "RELEASE_SHA=$sha" --build-arg "BASEMAP_VERSION=$(cat "$context/.basemap-version" 2>/dev/null || true)" --iidfile "$output" "$context"
   [[ "$(cat "$output")" =~ ^sha256:[a-f0-9]{64}$ ]] || { echo 'Build did not produce a valid image ID.' >&2; return 1; }
 }
 repo_git --git-dir="$repository" archive "$revision" | tar -x -C "$staging"
+bash "${DEPLOY_BASEMAP_HOOK:-$staging/deploy/build-basemaps.sh}" "$staging"
 build_image "$staging" "$revision" "$staging/.container-image"
 # Convert a retained host-Node release to an image before switching, so rollback
 # also works after migration. Never write into the existing live release.
@@ -63,7 +77,7 @@ if valid_release "$previous" && [[ ! -f "$previous/.container-image" ]]; then
   legacy_sha=$(cat "$previous/.release-sha")
   legacy="$DEPLOY_ROOT/releases/legacy-container-$legacy_sha"
   legacy_staging=$(mktemp -d "$DEPLOY_ROOT/releases/.legacy-XXXXXXXX")
-  if ! build_image "$previous" "$legacy_sha" "$legacy_staging/.container-image"; then
+  if ! build_image "$previous" "$legacy_sha" "$legacy_staging/.container-image" true; then
     rm -rf "$legacy_staging"
     exit 1
   fi

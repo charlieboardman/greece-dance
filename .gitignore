@@ -8,3 +8,9 @@ playwright-report/
 test-results/
 *.pem
 *.key
+
+assets/basemaps/generated/
+assets/basemaps/**/*.pmtiles
+.basemap-version
+__pycache__/
+*.pyc

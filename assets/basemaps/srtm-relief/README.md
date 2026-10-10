@@ -50,47 +50,19 @@ Natural Earth makes all of its data available under its
 [public-domain terms of use](https://www.naturalearthdata.com/about/terms-of-use/).
 Neither source requires map attribution.
 
-## Rebuilding or extending the map
+## Building and caching
 
-Keep source material outside the repository: one directory of extracted
-`.hgt` files and one directory of extracted Natural Earth shapefiles. The
-committed bounds are arguments to the renderer, so a future build can cover a
-larger rectangle without reorganizing the app or archive layout.
+Generated archives are no longer tracked in Git. `deploy/build-basemaps.sh` builds
+both outputs on the deployment machine, before switching releases. See
+[the build/deployment guide](../../../deploy/basemaps/README.md) for resource
+limits, cache keys, recovery, and local development.
 
-Requirements are Python 3, Pillow, NumPy, pyshp, and the
-[`go-pmtiles`](https://github.com/protomaps/go-pmtiles) command. The committed
-archive was encoded as quality-76 WebP and packed with go-pmtiles 1.31.2:
+`deploy/basemaps/terrain.json` defines coverage and quality. The renderer samples
+source HGT files directly with a bounded map of open files and renders at most
+four tiles per chunk, with interpolation halos preserved across chunk edges.
+There is no intermediate continent-sized elevation mosaic. Python, NumPy,
+Pillow, pyshp, and the PMTiles packer run in the separate builder container.
 
-```bash
-python3 scripts/build-srtm-basemap.py \
-  path/to/srtm-hgt \
-  path/to/natural-earth-shapefiles \
-  /tmp/greece-srtm-relief.mbtiles \
-  --west 12 --south 34 --east 48 --north 44 \
-  --min-zoom 0 --max-zoom 11 --quality 76 --workers 16 \
-  --work-dir /tmp/national-dance-ministry-map-srtm-work
-
-go-pmtiles convert \
-  /tmp/greece-srtm-relief.mbtiles \
-  assets/basemaps/srtm-relief/greece-srtm-relief.pmtiles
-
-go-pmtiles verify \
-  assets/basemaps/srtm-relief/greece-srtm-relief.pmtiles
-
-python3 scripts/build-srtm-basemap.py \
-  path/to/srtm-hgt \
-  path/to/natural-earth-shapefiles \
-  /tmp/srtm-overview.mbtiles \
-  --west 0 --south 0 --east 60 --north 60 \
-  --min-zoom 0 --max-zoom 8 --quality 76 --workers 16 \
-  --work-dir /tmp/national-dance-ministry-map-overview-work
-
-go-pmtiles convert /tmp/srtm-overview.mbtiles \
-  assets/basemaps/srtm-relief/overview.pmtiles
-go-pmtiles verify assets/basemaps/srtm-relief/overview.pmtiles
-```
-
-The work directories hold roughly 1 GB (detail) and 10.4 GB (overview)
-memory-mapped elevation mosaics. The
-raw SRTM granules and intermediate MBTiles file are intentionally not
-committed.
+The historical `BUILD-SHA256SUMS` describes the previously committed archives.
+New builds record their checksums in each immutable version's `manifest.json`;
+encoder/packer changes can change bytes while preserving map coverage and detail.

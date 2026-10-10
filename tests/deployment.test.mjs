@@ -48,13 +48,20 @@ output=""
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --iidfile) output=$2; shift 2 ;;
+    --ignorefile) ignorefile=$2; shift 2 ;;
     *) context=$1; shift ;;
   esac
 done
 [[ ! -f "$context/invalid" ]]
+if [[ -f "$context/.release-sha" && ! -f "$context/.basemap-version" ]]; then
+  [[ "$(cat "$ignorefile")" != *'assets/basemaps/**/*.pmtiles'* ]]
+fi
 printf 'sha256:%064d\\n' 1 > "$output"
 `);
   await chmod(podman, 0o755);
+  const assetHook = path.join(root, "build-basemaps");
+  await writeFile(assetHook, '#!/usr/bin/env bash\nset -eu\n[[ "${FAIL_ASSETS:-}" != 1 ]]\nprintf "test-assets\\n" > "$1/.basemap-version"\n');
+  await chmod(assetHook, 0o755);
   const first = await publish();
   await mkdir(deploy);
   const hook = path.join(root, "restart");
@@ -71,7 +78,7 @@ printf 'sha256:%064d\\n' 1 > "$output"
   t.after(() => new Promise((resolve) => { health.closeAllConnections(); health.close(resolve); }));
   const env = { ...process.env, DEPLOY_CONFIG: path.join(root, "absent.env"), DEPLOY_ROOT: deploy,
     PATH: `${bin}:${process.env.PATH}`,
-    DEPLOY_REPOSITORY: remote, DEPLOY_RESTART_HOOK: hook, DEPLOY_CONTENT_HOOK: contentHook, DEPLOY_HEALTH_ATTEMPTS: "1",
+    DEPLOY_REPOSITORY: remote, DEPLOY_BASEMAP_HOOK: assetHook, DEPLOY_RESTART_HOOK: hook, DEPLOY_CONTENT_HOOK: contentHook, DEPLOY_HEALTH_ATTEMPTS: "1",
     DEPLOY_HEALTH_URL: `http://127.0.0.1:${health.address().port}/api/health` };
   const update = fileURLToPath(new URL("../deploy/upgrade.sh", import.meta.url));
   const rollback = fileURLToPath(new URL("../deploy/rollback.sh", import.meta.url));
@@ -96,6 +103,10 @@ printf 'sha256:%064d\\n' 1 > "$output"
   result = await run(update, { ...env, FAIL_CONTENT: "1" });
   assert.notEqual(result.code, 0);
   assert.equal((await readFile(path.join(deploy, "restarts"), "utf8")).trim(), "restart");
+  await writeFile(path.join(clone, "notes"), "asset build fails"); await publish();
+  result = await run(update, { ...env, FAIL_ASSETS: "1" });
+  assert.notEqual(result.code, 0);
+  assert.equal((await readFile(path.join(deploy, "running-sha"), "utf8")).trim(), first);
   await writeFile(path.join(clone, "invalid"), "bad content"); await publish();
   result = await run(update, env); assert.notEqual(result.code, 0, result.output);
   assert.equal((await readFile(path.join(deploy, "running-sha"), "utf8")).trim(), first);

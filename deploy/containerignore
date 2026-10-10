@@ -10,3 +10,8 @@ node_modules
 coverage
 test-results
 playwright-report
+
+assets/basemaps/generated
+assets/basemaps/**/*.pmtiles
+**/__pycache__
+**/*.pyc

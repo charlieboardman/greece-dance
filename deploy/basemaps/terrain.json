@@ -1,0 +1,16 @@
+{
+  "srtm_base": "https://srtm.fasma.org/",
+  "hydrography": [
+    ["ne_10m_coastline", "bfa04cdbcbef07ef90dfca1dabb48062eca29900a113df0f389303e255484017"],
+    ["ne_10m_lakes", "0803a06f9c3cb4671d89b68c48b142aad9366ba40f665245e12a913fbc61722a"],
+    ["ne_10m_lakes_europe", "c0b1f0da4dce6af3b27c49b3ed11a664d801ff3d140ca5b9814e7e85a35c1de1"],
+    ["ne_10m_rivers_lake_centerlines", "ded71b01870855ccfe19b51f2ec14c9bb48fae23c0e9f3c11974d426433b5c38"],
+    ["ne_10m_rivers_europe", "c730ccb4cbe21c1f03d006de4032a0dc69ade342de941d10aa1facab59019dbf"]
+  ],
+  "quality": 76,
+  "chunk_tiles": 4,
+  "outputs": [
+    {"file": "overview.pmtiles", "bounds": [0, 0, 60, 60], "maxzoom": 8},
+    {"file": "greece-srtm-relief.pmtiles", "bounds": [12, 34, 48, 44], "maxzoom": 11}
+  ]
+}

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { once } from "node:events";
-import { mkdtemp, cp, rm } from "node:fs/promises";
+import { mkdtemp, cp, rm, mkdir, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { createApp } from "../server/app.js";
@@ -18,10 +18,14 @@ async function fixture(t, options = {}) {
 }
 
 test("public map content, map assets and byte ranges work; private files are not served", async (t) => {
-  const { request } = await fixture(t, { editor: null });
+  const basemapDir = await mkdtemp(path.join(os.tmpdir(), "basemap-http-"));
+  t.after(() => rm(basemapDir, { recursive: true, force: true }));
+  await mkdir(path.join(basemapDir, "development"));
+  await writeFile(path.join(basemapDir, "development/test.pmtiles"), Buffer.alloc(256));
+  const { request } = await fixture(t, { editor: null, basemapDir });
   assert.equal((await request("/")).status, 200);
   assert.equal((await (await request("/api/content")).json()).regions.length > 0, true);
-  const range = await request("/assets/basemaps/srtm-relief/greece-srtm-relief.pmtiles", { headers: { Range: "bytes=0-126" } });
+  const range = await request("/basemaps/development/test.pmtiles", { headers: { Range: "bytes=0-126" } });
   assert.equal(range.status, 206); assert.equal((await range.arrayBuffer()).byteLength, 127);
   for (const filename of ["/.env", "/.git/config", "/server/index.js", "/package.json", "/info/thessaly/region.json"]) assert.equal((await request(filename)).status, 404);
   assert.equal((await request("/api/editor/content")).status, 503);

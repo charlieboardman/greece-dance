@@ -16,7 +16,8 @@ id greece-dance >/dev/null 2>&1 || useradd --system --home-dir /var/lib/greece-d
 id greece-deploy >/dev/null 2>&1 || useradd --system --create-home --home-dir /var/lib/greece-deploy --shell /usr/sbin/nologin greece-deploy
 install -d -m 0755 -o greece-deploy -g greece-deploy /srv/greece-dance /srv/greece-dance/releases
 install -d -m 0700 -o greece-dance -g greece-dance /var/lib/greece-dance-editor
-install -d -m 0700 -o greece-dance -g greece-dance /var/lib/greece-dance-content
+install -d -m 0700 -o greece-dance -g greece-dance /var/lib/greece-dance-content /var/lib/greece-dance-tile-cache
+install -d -m 0755 /var/lib/greece-dance-basemaps/versions
 install -d -m 0750 -o root -g greece-dance /etc/greece-dance
 # Deployment config is separate from app secrets and readable by the deploy account.
 install -d -m 0755 /usr/local/lib/greece-dance/deploy /usr/local/libexec

@@ -17,7 +17,14 @@ try {
     { width: 320, height: 960 }, { width: 240, height: 1200 }
   ]) {
     const page = await browser.newPage({ viewport });
-    page.on("pageerror", error => errors.push(error.message));
+    await page.route("**/*", route => {
+    if (new URL(route.request().url()).hostname !== "127.0.0.1") {
+      errors.push(`External browser request: ${route.request().url()}`);
+      return route.abort();
+    }
+    return route.continue();
+  });
+  page.on("pageerror", error => errors.push(error.message));
     page.on("console", message => {
       if (message.type() === "error" && message.text().includes("Basemap error")) errors.push(message.text());
     });

@@ -2,9 +2,9 @@
 // credentials/state, local HTTP only, no GitHub or production services.
 import assert from "node:assert/strict";
 import { createServer } from "node:net";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { mkdtemp, mkdir, writeFile, readFile, rm } from "node:fs/promises";
-import { randomBytes, generateKeyPairSync } from "node:crypto";
+import { randomBytes, generateKeyPairSync, createHash } from "node:crypto";
 import { fileURLToPath } from "node:url";
 import os from "node:os";
 import path from "node:path";
@@ -60,8 +60,26 @@ await new Promise(resolve => reservation.listen(0, "127.0.0.1", resolve));
 const port = reservation.address().port;
 await new Promise(resolve => reservation.close(resolve));
 const project = `dance-check-${process.pid}`;
+const basemaps = path.join(root, "basemaps");
+const tileCache = path.join(root, "tile-cache");
+const versionRead = spawnSync("podman", ["run", "--rm", "--network=none", "--entrypoint", "cat", image, "/app/.basemap-version"], { encoding: "utf8" });
+assert.equal(versionRead.status, 0);
+const basemapVersion = versionRead.stdout.trim();
+assert.match(basemapVersion, /^(?:development|[a-f0-9]{64})$/u);
+const artifactDir = path.join(basemaps, "versions", basemapVersion);
+await mkdir(artifactDir, { recursive: true });
+await mkdir(tileCache);
+const fixtureTile = Buffer.alloc(256);
+fixtureTile.write("PMTiles"); fixtureTile[7] = 3;
+const files = {};
+for (const name of ["overview.pmtiles", "greece-srtm-relief.pmtiles"]) {
+  await writeFile(path.join(artifactDir, name), fixtureTile);
+  files[name] = createHash("sha256").update(fixtureTile).digest("hex");
+}
+await writeFile(path.join(artifactDir, "manifest.json"), JSON.stringify({ version: basemapVersion, files }));
 const env = { ...process.env, PODMAN_COMPOSE_PROVIDER: "/usr/bin/podman-compose",
   GREECE_DANCE_IMAGE: image, GREECE_DANCE_UID: String(process.getuid()), GREECE_DANCE_GID: String(process.getgid()),
+  GREECE_DANCE_BASEMAP_ROOT: basemaps, GREECE_DANCE_MAP_CACHE_DIR: tileCache,
   GREECE_DANCE_CONFIG_DIR: config, GREECE_DANCE_STATE_DIR: state, GREECE_DANCE_CONTENT_DIR: content, GREECE_DANCE_PORT: String(port) };
 async function run(args) {
   return new Promise((resolve, reject) => {
@@ -78,7 +96,7 @@ async function run(args) {
     });
   });
 }
-const compose = ["compose", "-p", project, "-f", fileURLToPath(new URL("./compose.yaml", import.meta.url)), "-f", override];
+const compose = ["compose", "--in-pod=false", "-p", project, "-f", fileURLToPath(new URL("./compose.yaml", import.meta.url)), "-f", override];
 try {
   // Exercise password setup with NODE unset: no host Node/npm dependencies.
   const helperConfig = path.join(root, "helper-config");
@@ -139,7 +157,7 @@ try {
   assert.equal(updatedContent.revision, secondRevision, `CLI refreshes live content without a restart: HTTP ${updatedResponse.status} ${JSON.stringify(updatedContent.error || "")}`);
   assert.equal(await run([...compose, "ps", "-q"]), id, "Content publication retains the same running container");
   assert.equal((await fetch(base)).status, 200);
-  const range = await fetch(`${base}/assets/basemaps/srtm-relief/greece-srtm-relief.pmtiles`, { headers: { Range: "bytes=0-126" } });
+  const range = await fetch(`${base}/basemaps/${basemapVersion}/overview.pmtiles`, { headers: { Range: "bytes=0-126" } });
   assert.equal(range.status, 206); assert.equal((await range.arrayBuffer()).byteLength, 127);
   const response = await fetch(`${base}/api/editor/login`, { method: "POST",
     headers: { Origin: "https://editor.test", "X-Forwarded-Proto": "https", "Content-Type": "application/json" }, body: JSON.stringify({ password }) });
@@ -148,6 +166,7 @@ try {
   await run(["exec", id, "node", "--input-type=module", "-e", `
     import { writeFileSync } from 'node:fs';
     writeFileSync('/var/lib/greece-dance-editor/persistence-check', 'retained');
+    writeFileSync('/var/lib/greece-dance-tile-cache/persistence-check', 'retained');
     try { writeFileSync('/app/index.html', 'bad'); process.exit(1); }
     catch (e) { if (!['EROFS','EACCES'].includes(e.code)) throw e; }
   `]);
@@ -159,6 +178,8 @@ try {
   const restarted = await run([...compose, "ps", "-q"]);
   assert.equal(await run(["exec", restarted, "cat", "/var/lib/greece-dance-editor/persistence-check"]), "retained");
   assert.equal((await (await fetch(`${base}/api/content`)).json()).revision, secondRevision);
+  assert.equal(await run(["exec", restarted, "cat", "/var/lib/greece-dance-tile-cache/persistence-check"]), "retained");
+  assert.equal((await (await fetch(`${base}/api/content`)).json()).basemapVersion, basemapVersion);
   console.log("Compose check passed: Node 24, live content without restart, persistent content/state, read-only app, HTTPS editor cookie, and file-based credentials.");
 } finally {
   try { await run([...compose, "down"]); } finally { await rm(root, { recursive: true, force: true }); }

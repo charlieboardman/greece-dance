@@ -8,7 +8,7 @@ import io
 import math
 import re
 import sqlite3
-import tempfile
+from collections import OrderedDict
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from pathlib import Path
@@ -65,11 +65,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--max-zoom", type=int, default=11)
     parser.add_argument("--quality", type=int, default=76, help="WebP quality (default: 76)")
     parser.add_argument("--workers", type=int, default=1, help="Parallel WebP encoders")
-    parser.add_argument(
-        "--work-dir",
-        type=Path,
-        help="Directory for the temporary 750 MB elevation mosaic (default: system temporary directory)",
-    )
+    parser.add_argument("--chunk-tiles", type=int, default=4, help="Maximum tiles rendered at once")
     return parser.parse_args()
 
 
@@ -98,37 +94,69 @@ def tile_range(args: argparse.Namespace, zoom: int) -> tuple[int, int, int, int]
     return x_min, y_min, x_max, y_max
 
 
-def build_elevation_mosaic(args: argparse.Namespace, mosaic_path: Path) -> np.memmap:
-    height = (args.north - args.south) * SAMPLES_PER_DEGREE + 1
-    width = (args.east - args.west) * SAMPLES_PER_DEGREE + 1
-    mosaic = np.memmap(mosaic_path, dtype=np.int16, mode="w+", shape=(height, width))
-    mosaic[:] = 0
+class ElevationTiles:
+    """Read only needed HGT rows; never materialize the multi-gigabyte mosaic."""
 
-    loaded = 0
-    for path in sorted(args.hgt_dir.glob("*.hgt")):
-        match = HGT_NAME.match(path.name)
-        if not match:
-            continue
-        latitude = int(match.group("latitude"))
-        longitude = int(match.group("longitude"))
-        if not (
-            args.south <= latitude < args.north
-            and args.west <= longitude < args.east
-        ):
-            continue
-        source = np.memmap(path, dtype=">i2", mode="r", shape=(1201, 1201))
-        row = (args.north - latitude - 1) * SAMPLES_PER_DEGREE
-        column = (longitude - args.west) * SAMPLES_PER_DEGREE
-        values = np.asarray(source, dtype=np.int16)
-        values = np.where(values == VOID_ELEVATION, 0, values)
-        mosaic[row : row + 1201, column : column + 1201] = values
-        loaded += 1
+    def __init__(self, args, max_open=8):
+        self.args = args
+        self.shape = ((args.north - args.south) * 1200 + 1,
+                      (args.east - args.west) * 1200 + 1)
+        self.paths = {}
+        self.open = OrderedDict()
+        self.max_open = max_open
+        for path in sorted(args.hgt_dir.glob("*.hgt")):
+            match = HGT_NAME.match(path.name)
+            if match:
+                lat, lon = int(match["latitude"]), int(match["longitude"])
+                if args.south <= lat < args.north and args.west <= lon < args.east:
+                    if path.stat().st_size != 1201 * 1201 * 2:
+                        raise ValueError(f"Invalid HGT size: {path.name}")
+                    self.paths[lat, lon] = path
+        if not self.paths:
+            raise FileNotFoundError(f"No in-bounds HGT files in {args.hgt_dir}")
 
-    if loaded == 0:
-        raise FileNotFoundError(f"No in-bounds SRTM .hgt files found in {args.hgt_dir}")
-    mosaic.flush()
-    print(f"Loaded {loaded} SRTM granules into {width:,} x {height:,} mosaic", flush=True)
-    return mosaic
+    def tile(self, key):
+        if key in self.open:
+            self.open.move_to_end(key)
+            return self.open[key]
+        if key not in self.paths:
+            return None
+        if len(self.open) >= self.max_open:
+            _, old = self.open.popitem(last=False)
+            old._mmap.close()
+        data = np.memmap(self.paths[key], dtype=">i2", mode="r", shape=(1201, 1201))
+        self.open[key] = data
+        return data
+
+    def __getitem__(self, index):
+        y, xs = index
+        xs = np.asarray(xs)
+        result = np.zeros(xs.shape, dtype=np.int16)
+        # Ascending latitude/longitude matches the original mosaic's seam ownership.
+        latitude = self.args.north - 1 - min(int(y) // 1200, self.args.north - self.args.south - 1)
+        latitudes = [latitude]
+        if y and y % 1200 == 0 and latitude + 1 < self.args.north:
+            latitudes.append(latitude + 1)
+        longitudes = np.minimum(xs // 1200 + self.args.west, self.args.east - 1)
+        candidates = set(int(lon) for lon in longitudes)
+        candidates.update(int(lon) - 1 for lon in longitudes[xs % 1200 == 0] if lon > self.args.west)
+        for lat in latitudes:
+            row = int(y) - (self.args.north - lat - 1) * 1200
+            if not 0 <= row <= 1200:
+                continue
+            for lon in sorted(candidates):
+                columns = xs - (lon - self.args.west) * 1200
+                selected = (columns >= 0) & (columns <= 1200)
+                tile = self.tile((lat, lon))
+                if tile is not None:
+                    values = np.asarray(tile[row, columns[selected]], dtype=np.int16)
+                    result[selected] = np.where(values == VOID_ELEVATION, 0, values)
+        return result
+
+    def close(self):
+        for tile in self.open.values():
+            tile._mmap.close()
+        self.open.clear()
 
 
 def shape_parts(shape: shapefile.Shape) -> tuple[tuple[tuple[float, float], ...], ...]:
@@ -442,38 +470,41 @@ def render_rows(connection, mosaic, args, hydrography, encoders, total_tiles):
     for zoom in range(args.min_zoom, args.max_zoom + 1):
         x_min, y_min, x_max, y_max = tile_range(args, zoom)
         for y in range(y_min, y_max + 1):
-            elevation, land = sample_elevation(mosaic, args, zoom, x_min, x_max, y)
-            strip = render_relief(elevation, land, zoom, y)
-            strip = add_hydrography(
-                strip, zoom, x_min, x_max, y, lakes, coastlines, rivers
-            )
-            # Boundary tiles must remain transparent outside the source crop,
-            # so a detailed regional layer cannot paint water over its overview.
-            xs = np.arange(x_min * TILE_SIZE, (x_max + 1) * TILE_SIZE) + 0.5
-            ys = np.arange(y * TILE_SIZE, (y + 1) * TILE_SIZE) + 0.5
-            world = TILE_SIZE * (1 << zoom)
-            longitudes = xs / world * 360 - 180
-            latitudes = latitude_at_pixel(ys, zoom)
-            valid = ((latitudes >= args.south) & (latitudes <= args.north))[:, None] & (
-                (longitudes >= args.west) & (longitudes <= args.east)
-            )[None, :]
-            strip = strip.convert("RGBA")
-            strip.putalpha(Image.fromarray(valid.astype(np.uint8) * 255))
-            tiles = []
-            for x in range(x_min, x_max + 1):
-                left = (x - x_min) * TILE_SIZE
-                tiles.append(strip.crop((left, 0, left + TILE_SIZE, TILE_SIZE)))
-            encoded = encoders.map(lambda tile: encode_webp(tile, args.quality), tiles)
-            records = [(zoom, x, (1 << zoom) - 1 - y, data)
-                       for x, data in zip(range(x_min, x_max + 1), encoded)]
-            connection.executemany("INSERT INTO tiles VALUES (?, ?, ?, ?)", records)
-            connection.commit()
-            completed += len(records)
-            print(
-                f"z{zoom} row {y - y_min + 1}/{y_max - y_min + 1}: "
-                f"{completed:,}/{total_tiles:,} tiles",
-                flush=True,
-            )
+            for start in range(x_min, x_max + 1, args.chunk_tiles):
+                end = min(start + args.chunk_tiles - 1, x_max)
+                elevation, land = sample_elevation(mosaic, args, zoom, start, end, y)
+                strip = render_relief(elevation, land, zoom, y)
+                del elevation, land
+                strip = add_hydrography(
+                    strip, zoom, start, end, y, lakes, coastlines, rivers
+                )
+                # Boundary tiles must remain transparent outside the source crop,
+                # so a detailed regional layer cannot paint water over its overview.
+                xs = np.arange(start * TILE_SIZE, (end + 1) * TILE_SIZE) + 0.5
+                ys = np.arange(y * TILE_SIZE, (y + 1) * TILE_SIZE) + 0.5
+                world = TILE_SIZE * (1 << zoom)
+                longitudes = xs / world * 360 - 180
+                latitudes = latitude_at_pixel(ys, zoom)
+                valid = ((latitudes >= args.south) & (latitudes <= args.north))[:, None] & (
+                    (longitudes >= args.west) & (longitudes <= args.east)
+                )[None, :]
+                strip = strip.convert("RGBA")
+                strip.putalpha(Image.fromarray(valid.astype(np.uint8) * 255))
+                tiles = []
+                for x in range(start, end + 1):
+                    left = (x - start) * TILE_SIZE
+                    tiles.append(strip.crop((left, 0, left + TILE_SIZE, TILE_SIZE)))
+                encoded = encoders.map(lambda tile: encode_webp(tile, args.quality), tiles)
+                records = [(zoom, x, (1 << zoom) - 1 - y, data)
+                           for x, data in zip(range(start, end + 1), encoded)]
+                connection.executemany("INSERT INTO tiles VALUES (?, ?, ?, ?)", records)
+                connection.commit()
+                completed += len(records)
+                print(
+                    f"z{zoom} row {y - y_min + 1}/{y_max - y_min + 1}: "
+                    f"{completed:,}/{total_tiles:,} tiles",
+                    flush=True,
+                )
     connection.execute(
         "CREATE UNIQUE INDEX tile_index ON tiles (zoom_level, tile_column, tile_row)"
     )
@@ -486,29 +517,21 @@ def main() -> None:
         raise SystemExit("Crop bounds are invalid")
     if args.min_zoom < 0 or args.max_zoom < args.min_zoom:
         raise SystemExit("Zoom range is invalid")
+    if not 1 <= args.chunk_tiles <= 4:
+        raise SystemExit("Chunk size must be between 1 and 4 tiles")
     if args.workers < 1:
         raise SystemExit("Worker count must be positive")
     args.output.parent.mkdir(parents=True, exist_ok=True)
     bounds = (args.west, args.south, args.east, args.north)
     hydrography = load_hydrography(args.hydrography_dir, bounds)
 
-    if args.work_dir:
-        args.work_dir.mkdir(parents=True, exist_ok=True)
-        mosaic_path = args.work_dir / "srtm-mosaic.int16"
-        mosaic = build_elevation_mosaic(args, mosaic_path)
-        connection = initialize_database(args.output, args)
-        try:
-            render_pyramid(connection, mosaic, args, hydrography)
-        finally:
-            connection.close()
-    else:
-        with tempfile.TemporaryDirectory(prefix="national-dance-ministry-map-srtm-") as temporary:
-            mosaic = build_elevation_mosaic(args, Path(temporary) / "srtm-mosaic.int16")
-            connection = initialize_database(args.output, args)
-            try:
-                render_pyramid(connection, mosaic, args, hydrography)
-            finally:
-                connection.close()
+    mosaic = ElevationTiles(args)
+    connection = initialize_database(args.output, args)
+    try:
+        render_pyramid(connection, mosaic, args, hydrography)
+    finally:
+        connection.close()
+        mosaic.close()
     print(f"Wrote {args.output} ({args.output.stat().st_size / 1_000_000:.1f} MB)")
 
 

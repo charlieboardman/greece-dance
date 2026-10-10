@@ -1,4 +1,4 @@
-// Optional live OSM check; requests only tiles visible in the test browser.
+// Same-origin OSM check: only the server may fetch visible tiles upstream.
 import assert from "node:assert/strict";
 import { once } from "node:events";
 import { createApp } from "../server/app.js";
@@ -11,6 +11,13 @@ const browser = await chromium.launch({ headless: true,
 try {
   const errors = [];
   const page = await browser.newPage({ viewport: { width: 1440, height: 950 } });
+  await page.route("**/*", route => {
+    if (new URL(route.request().url()).hostname !== "127.0.0.1") {
+      errors.push(`External browser request: ${route.request().url()}`);
+      return route.abort();
+    }
+    return route.continue();
+  });
   page.on("pageerror", error => errors.push(error.message));
   page.on("console", message => {
     if (message.type() === "error" && message.text().includes("Basemap error")) errors.push(message.text());
@@ -21,7 +28,7 @@ try {
       "window.testMap = map; map.addControl(new NavigationControl") });
   });
   await page.goto(`http://127.0.0.1:${server.address().port}`, { waitUntil: "networkidle" });
-  assert.equal(await page.locator("#map-option option").count(), 4);
+  assert.equal(await page.locator("#map-option option").count(), 3);
   const count = await page.locator(".village-icon").count();
   await page.selectOption("#map-option", "streets");
   await page.waitForFunction(() => window.testMap.getLayer("place-labels") && window.testMap.loaded());

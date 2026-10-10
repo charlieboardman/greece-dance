@@ -27,6 +27,7 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
 
 (async () => {
   let regions = [];
+  let basemapVersion = "development";
   let contentError = null;
   try {
     if (!window.marked?.parse) throw new Error("The bundled Markdown reader could not be loaded.");
@@ -34,7 +35,9 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
     const dancesUrl = new URL("./api/content", import.meta.url);
     const response = await fetch(dancesUrl, { cache: "no-store" });
     if (!response.ok) throw new Error(`Could not load map content (HTTP ${response.status}).`);
-    regions = sortRegionsAlphabetically((await response.json()).regions);
+    const content = await response.json();
+    regions = sortRegionsAlphabetically(content.regions);
+    basemapVersion = content.basemapVersion;
   } catch (error) {
     contentError = error;
     console.error("Atlas content error:", error);
@@ -100,11 +103,11 @@ addProtocol("pmtiles", pmtilesProtocol.tile);
   document.querySelector("#mobile-count").textContent = String(villages.length).padStart(2, "0");
 
   const reliefTilesUrl = new URL(
-    "./assets/basemaps/srtm-relief/greece-srtm-relief.pmtiles",
+    `./basemaps/${basemapVersion}/greece-srtm-relief.pmtiles`,
     import.meta.url
   ).href;
   const terrainOverviewUrl = new URL(
-    "./assets/basemaps/srtm-relief/overview.pmtiles", import.meta.url
+    `./basemaps/${basemapVersion}/overview.pmtiles`, import.meta.url
   ).href;
   const navigationBounds = BASEMAP_BOUNDS;
   const homeViewBounds = expandedVillageBounds(villages);

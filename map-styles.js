@@ -59,11 +59,11 @@ export function createMapStyle(id, {
   if (id === "boundaries") {
     return {
       version: 8,
-      glyphs: "https://vector.openstreetmap.org/styles/shortbread/fonts/{fontstack}/{range}.pbf",
+      glyphs: "/map-data/glyphs/{fontstack}/{range}.pbf",
       sources: {
         shortbread: {
           type: "vector",
-          tiles: ["https://vector.openstreetmap.org/shortbread_v1/{z}/{x}/{y}.mvt"],
+          tiles: ["/map-data/tiles/{z}/{x}/{y}.mvt"],
           minzoom: 0,
           maxzoom: 14,
           bounds: [bounds.west, bounds.south, bounds.east, bounds.north],

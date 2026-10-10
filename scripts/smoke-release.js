@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import { createApp } from "../server/app.js";
 
-const app = await createApp({ editor: null, production: true });
+const app = await createApp({ editor: null, production: true, basemapVersion: process.env.BASEMAP_VERSION || "development" });
 const server = app.listen(0, "127.0.0.1");
 await once(server, "listening");
 const base = `http://127.0.0.1:${server.address().port}`;
@@ -29,12 +29,13 @@ try {
     assert.equal(response.status, 200);
     assert.match(await response.text(), /SIL OPEN FONT LICENSE Version 1\.1/u);
   }
-  for (const asset of ["srtm-relief/greece-srtm-relief.pmtiles", "srtm-relief/overview.pmtiles"]) {
-    const response = await fetch(`${base}/assets/basemaps/${asset}`, { headers: { Range: "bytes=0-126" } });
+  if (process.argv.includes("--with-basemaps")) for (const asset of ["greece-srtm-relief.pmtiles", "overview.pmtiles"]) {
+    const response = await fetch(`${base}/basemaps/${process.env.BASEMAP_VERSION || "development"}/${asset}`, { headers: { Range: "bytes=0-126" } });
     assert.equal(response.status, 206, asset);
     assert.equal((await response.arrayBuffer()).byteLength, 127, asset);
   }
-  console.log("Release smoke check passed (map content, public pages, local fonts and licenses, editor assets, PMTiles byte ranges).");
+  assert.match((await fetch(base)).headers.get("content-security-policy"), /connect-src 'self'/u);
+  console.log("Release smoke check passed (map content, public pages, local fonts and licenses, editor assets, optional generated PMTiles byte ranges).");
 } finally {
   server.closeAllConnections();
   await new Promise((resolve) => server.close(resolve));

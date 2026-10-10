@@ -227,3 +227,23 @@ The optional browser check exercises two visitors, reload during publication, an
 draft/conflict preservation against a temporary local remote. With Playwright and
 its Chromium browser installed, run `node tests/editor-browser.mjs` under Node 24.
 Alternatively set `PLAYWRIGHT_MODULE` to an existing Playwright module entry point.
+
+## Map builds and runtime tile cache
+
+For the first upgrade to this pipeline, run the current `setup.sh` after pulling
+these changes. It installs the new volume mounts and deployment scripts. Running
+an older installed upgrade script alone is insufficient. Later upgrades can use
+the installed service as usual.
+
+Terrain is generated on the droplet and retained outside Git/app images. The first
+upgrade needs hours and roughly 9.11 GB of extracted source data plus working
+space; later code/content upgrades reuse verified outputs. OSM tiles and map-label
+glyphs are fetched only when requested through a same-origin server proxy, with
+a default 1 GiB persistent payload cache. The browser never requests the OSM
+provider directly. See [basemap builds and cache operations](basemaps/README.md)
+for cache keys, resource limits, disk budgets, interruption recovery, and tests.
+
+The app additionally mounts `/var/lib/greece-dance-basemaps/versions` read-only and
+`/var/lib/greece-dance-tile-cache` writable. The terrain version is pinned in each
+app image, so rollback also restores the corresponding map URLs. The existing
+request-logging defaults remain disabled.

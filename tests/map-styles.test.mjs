@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { open } from "node:fs/promises";
+import { readFile } from "node:fs/promises";
 
 import {
   boundaryLabelExpression,
@@ -47,7 +47,8 @@ test("boundaries uses localized OpenStreetMap labels", () => {
 
   assert.deepEqual(labels.layout["text-field"], boundaryLabelExpression("el"));
   assert.deepEqual(labels.layout["text-field"], ["coalesce", ["get", "name_el"], ["get", "name"]]);
-  assert.match(style.sources.shortbread.tiles[0], /vector\.openstreetmap\.org/u);
+  assert.equal(style.sources.shortbread.tiles[0], "/map-data/tiles/{z}/{x}/{y}.mvt");
+  assert.equal(style.glyphs, "/map-data/glyphs/{fontstack}/{range}.pbf");
 });
 
 test("unknown map choices are rejected", () => {
@@ -64,21 +65,11 @@ test("terrain keeps the regional detail above a broad tiled overview", () => {
   assert.deepEqual(style.sources["srtm-relief"].bounds, [12, 34, 48, 44]);
 });
 
-test("committed terrain archives match the advertised coverage", async () => {
-  for (const [filename, expectedBounds, maximumZoom] of [
-    ["srtm-relief/overview.pmtiles", BASEMAP_BOUNDS, 8],
-    ["srtm-relief/greece-srtm-relief.pmtiles", TERRAIN_DETAIL_BOUNDS, 11]
-  ]) {
-    const file = await open(new URL(`../assets/basemaps/${filename}`, import.meta.url));
-    try {
-      const header = Buffer.alloc(127);
-      await file.read(header, 0, header.length, 0);
-      assert.equal(header.subarray(0, 7).toString(), "PMTiles", filename);
-      assert.equal(header[7], 3, filename);
-      assert.equal(header[100], 0, filename);
-      assert.equal(header[101], maximumZoom, filename);
-      assert.deepEqual([102, 106, 110, 114].map(offset => header.readInt32LE(offset) / 1e7),
-        [expectedBounds.west, expectedBounds.south, expectedBounds.east, expectedBounds.north], filename);
-    } finally { await file.close(); }
-  }
+test("terrain build manifest matches advertised coverage", async () => {
+  const manifest = JSON.parse(await readFile(new URL("../deploy/basemaps/terrain.json", import.meta.url), "utf8"));
+  assert.deepEqual(manifest.outputs.map(o => o.bounds), [
+    [BASEMAP_BOUNDS.west, BASEMAP_BOUNDS.south, BASEMAP_BOUNDS.east, BASEMAP_BOUNDS.north],
+    [TERRAIN_DETAIL_BOUNDS.west, TERRAIN_DETAIL_BOUNDS.south, TERRAIN_DETAIL_BOUNDS.east, TERRAIN_DETAIL_BOUNDS.north]
+  ]);
+  assert.deepEqual(manifest.outputs.map(o => o.maxzoom), [8, 11]);
 });
