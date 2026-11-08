@@ -3,8 +3,8 @@
     "en": "Polipotamo",
     "el": "Πολυπόταμο"
   },
+  "region": "macedonia",
+  "subregion": null,
   "latitude": 40.7175,
-  "longitude": 21.3656,
-  "region": "macedonia-western",
-  "subregion": null
+  "longitude": 21.3656
 }
