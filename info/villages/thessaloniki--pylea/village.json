@@ -3,8 +3,8 @@
     "en": "Pylea",
     "el": "Πυλαία"
   },
+  "region": "macedonia",
+  "subregion": null,
   "latitude": 40.601,
-  "longitude": 22.987,
-  "region": "thessaloniki",
-  "subregion": null
+  "longitude": 22.987
 }
