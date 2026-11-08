@@ -3,8 +3,8 @@
     "en": "Deskati",
     "el": "Δεσκάτη"
   },
+  "region": "macedonia",
+  "subregion": null,
   "latitude": 39.926,
-  "longitude": 21.809,
-  "region": "macedonia-western",
-  "subregion": null
+  "longitude": 21.809
 }
