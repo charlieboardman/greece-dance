@@ -3,8 +3,8 @@
     "en": "Goumenissa",
     "el": "Γουμένισσα"
   },
+  "region": "macedonia",
+  "subregion": "goumenissa",
   "latitude": 40.947,
-  "longitude": 22.452,
-  "region": "macedonia-central",
-  "subregion": null
+  "longitude": 22.452
 }
