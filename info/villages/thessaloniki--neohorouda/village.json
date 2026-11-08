@@ -3,8 +3,8 @@
     "en": "Neohorouda",
     "el": "Νεοχωρούδα"
   },
+  "region": "macedonia",
+  "subregion": null,
   "latitude": 40.738,
-  "longitude": 22.876,
-  "region": "thessaloniki",
-  "subregion": null
+  "longitude": 22.876
 }
